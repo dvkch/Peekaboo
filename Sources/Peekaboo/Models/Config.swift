@@ -89,9 +89,11 @@ extension Config {
     func validateNonOverlappingBaseURLs() throws(AppError) {
         let bases = exclusionFiles.map { $0.relativeTo }
         
-        for a in bases {
-            for b in bases where a != b {
-                if a.asPath.hasPrefix(b.asPath + "/") {
+        for i in bases.indices {
+            for j in bases.indices where j != i {
+                let a = bases[i]
+                let b = bases[j]
+                if a == b || a.asPath.hasPrefix(b.asPath + "/") {
                     throw .overlappingBaseURLs(a, b)
                 }
             }

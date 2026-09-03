@@ -34,8 +34,9 @@ extension FinderTag: ExclusionListDestination {
     func exclude(urls: [FileURL]) throws {
         for url in urls {
             do {
-                try FinderTag.addTag(tagName, to: url)
-                print("ADD    [\(name)]: \(url.asPath)")
+                if try FinderTag.addTag(tagName, to: url) {
+                    print("ADD    [\(name)]: \(url.asPath)")
+                }
             } catch {
                 print("  (failed to tag \(url.asPath): \(error))")
             }
@@ -45,8 +46,9 @@ extension FinderTag: ExclusionListDestination {
     func include(urls: [FileURL]) throws {
         for url in urls {
             do {
-                try FinderTag.removeTag(tagName, from: url)
-                print("REMOVE [\(name)]: \(url.asPath)")
+                if try FinderTag.removeTag(tagName, from: url) {
+                    print("REMOVE [\(name)]: \(url.asPath)")
+                }
             } catch {
                 print("  (failed to untag \(url.asPath): \(error))")
             }
@@ -55,18 +57,20 @@ extension FinderTag: ExclusionListDestination {
 }
 
 private extension FinderTag {
-    static func addTag(_ tag: String, to url: FileURL) throws {
+    static func addTag(_ tag: String, to url: FileURL) throws -> Bool {
         var existing = currentTags(for: url)
-        guard !existing.contains(tag) else { return }
+        guard !existing.contains(tag) else { return false }
         existing.append(tag)
         try url.asNSURL.setResourceValue(existing, forKey: .tagNamesKey)
+        return true
     }
 
-    static func removeTag(_ tag: String, from url: FileURL) throws {
+    static func removeTag(_ tag: String, from url: FileURL) throws -> Bool {
         var existing = currentTags(for: url)
-        guard let index = existing.firstIndex(of: tag) else { return }
+        guard let index = existing.firstIndex(of: tag) else { return false }
         existing.remove(at: index)
         try url.asNSURL.setResourceValue(existing, forKey: .tagNamesKey)
+        return true
     }
 
     static func currentTags(for url: FileURL) -> [String] {

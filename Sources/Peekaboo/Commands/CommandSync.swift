@@ -24,6 +24,7 @@ struct CommandSync: ParsableCommand {
         }
 
         for exclusionFile in config.exclusionFiles {
+            let startDate = Date.now
             print("-- Exclusion file: \(exclusionFile.path.asPath)")
             print("-- Relative to: \(exclusionFile.relativeTo.asPath)")
 
@@ -45,7 +46,7 @@ struct CommandSync: ParsableCommand {
                 try? tool.exclude(urls: Array(writable))
                 try? tool.include(urls: Array(toolExclusions.subtracting(rcloneExclusions)))
             }
-            print("")
+            print("-> Synced in \(Int(Date.now.timeIntervalSince(startDate)))s")
             print("")
         }
     }

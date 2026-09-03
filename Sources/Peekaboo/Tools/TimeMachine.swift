@@ -30,26 +30,43 @@ extension TimeMachine: ExclusionListSource {
 }
 
 extension TimeMachine: ExclusionListDestination {
-    // TODO: when updating skip paths, we need to only update the ones whose prefix is our baseURL
-
     func exclude(urls: [FileURL]) throws {
         guard !urls.isEmpty else { return }
-        var excludedURLs = Set(TimeMachine.currentSkipPaths())
+        var excludedURLs = TimeMachine.currentSkipPaths()
+        var changed = false
+
         for url in urls {
-            if excludedURLs.contains(url) { continue }
+            guard url.asPath == baseURL.asPath || url.asPath.hasPrefix(baseURL.asPath + "/") else {
+                print("  (skipping \(url.asPath) — outside \(baseURL.asPath), refusing to touch)")
+                continue
+            }
+            guard !excludedURLs.contains(url) else { continue }
             excludedURLs.insert(url)
             print("ADD    [\(name)]: \(url.asPath)")
+            changed = true
         }
+
+        guard changed else { return }
         try TimeMachine.writeSkipPaths(excludedURLs)
     }
-    
+
     func include(urls: [FileURL]) throws {
         guard !urls.isEmpty else { return }
         var excludedURLs = TimeMachine.currentSkipPaths()
+        var changed = false
+
         for url in urls {
+            guard url.asPath == baseURL.asPath || url.asPath.hasPrefix(baseURL.asPath + "/") else {
+                print("  (skipping \(url.asPath) — outside \(baseURL.asPath), refusing to touch)")
+                continue
+            }
+            guard excludedURLs.contains(url) else { continue }
             excludedURLs.remove(url)
             print("REMOVE [\(name)]: \(url.asPath)")
+            changed = true
         }
+
+        guard changed else { return }
         try TimeMachine.writeSkipPaths(excludedURLs)
     }
 }

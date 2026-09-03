@@ -21,11 +21,11 @@ struct TimeMachine: ExclusionListTool {
 
 extension TimeMachine: ExclusionListSource {
     func excludedURLs() throws -> [URL] {
-        let base = baseURL.standardizedFileURL.path()
+        let base = baseURL.standardizedFileURL.path(percentEncoded: false)
         return TimeMachine.currentSkipPaths()
             .map { URL(filePath: $0) }
             .filter {
-                let p = $0.standardizedFileURL.path()
+                let p = $0.standardizedFileURL.path(percentEncoded: false)
                 return p == base || p.hasPrefix(base + "/")
             }
     }
@@ -35,27 +35,23 @@ extension TimeMachine: ExclusionListDestination {
     func exclude(urls: [URL]) throws {
         guard !urls.isEmpty else { return }
         var paths = TimeMachine.currentSkipPaths()
-
         for url in urls {
-            let path = url.standardizedFileURL.path()
+            let path = url.standardizedFileURL.path(percentEncoded: false)
             guard !paths.contains(path) else { continue }
             paths.append(path)
             print("ADD    [\(name)]: \(path)")
         }
-
         try TimeMachine.writeSkipPaths(paths)
     }
-
+    
     func include(urls: [URL]) throws {
         guard !urls.isEmpty else { return }
-        let toRemove = Set(urls.map { $0.standardizedFileURL.path() })
+        let toRemove = Set(urls.map { $0.standardizedFileURL.path(percentEncoded: false) })
         var paths = TimeMachine.currentSkipPaths()
         paths.removeAll { toRemove.contains($0) }
-
         for url in urls {
-            print("REMOVE [\(name)]: \(url.standardizedFileURL.path())")
+            print("REMOVE [\(name)]: \(url.standardizedFileURL.path(percentEncoded: false))")
         }
-
         try TimeMachine.writeSkipPaths(paths)
     }
 }
@@ -88,6 +84,6 @@ extension TimeMachine {
     }
 
     static func delete(url: URL, fromExistingBackup backupName: String) throws {
-        try Shell.run("sudo", ["tmutil", "delete", "-p", url.standardizedFileURL.path(), backupName])
+        try Shell.run("sudo", ["tmutil", "delete", "-p", url.standardizedFileURL.path(percentEncoded: false), backupName])
     }
 }

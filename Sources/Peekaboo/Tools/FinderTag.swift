@@ -35,9 +35,9 @@ extension FinderTag: ExclusionListDestination {
         for url in urls {
             do {
                 try FinderTag.addTag(tagName, to: url)
-                print("ADD    [\(name)]: \(url.standardizedFileURL.path())")
+                print("ADD    [\(name)]: \(url.standardizedFileURL.path(percentEncoded: false))")
             } catch {
-                print("  (failed to tag \(url.standardizedFileURL.path()): \(error))")
+                print("  (failed to tag \(url.standardizedFileURL.path(percentEncoded: false)): \(error))")
             }
         }
     }
@@ -46,9 +46,9 @@ extension FinderTag: ExclusionListDestination {
         for url in urls {
             do {
                 try FinderTag.removeTag(tagName, from: url)
-                print("REMOVE [\(name)]: \(url.standardizedFileURL.path())")
+                print("REMOVE [\(name)]: \(url.standardizedFileURL.path(percentEncoded: false))")
             } catch {
-                print("  (failed to untag \(url.standardizedFileURL.path()): \(error))")
+                print("  (failed to untag \(url.standardizedFileURL.path(percentEncoded: false)): \(error))")
             }
         }
     }

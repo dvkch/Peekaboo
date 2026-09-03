@@ -18,8 +18,8 @@ struct CommandSync: ParsableCommand {
         let config = try Config.readConfig()
 
         for exclusionFile in config.exclusionFiles {
-            print("-- Exclusion file: \(exclusionFile.path.standardizedFileURL.path())")
-            print("-- Relative to: \(exclusionFile.relativeTo.standardizedFileURL.path())")
+            print("-- Exclusion file: \(exclusionFile.path.standardizedFileURL.path(percentEncoded: false))")
+            print("-- Relative to: \(exclusionFile.relativeTo.standardizedFileURL.path(percentEncoded: false))")
 
             let rclone = Rclone(excludeFileURL: exclusionFile.path, baseURL: exclusionFile.relativeTo)
             let rcloneExclusions = Set(try rclone.excludedURLs())

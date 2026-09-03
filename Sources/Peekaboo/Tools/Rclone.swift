@@ -61,9 +61,11 @@ private extension Rclone {
     // list the files that are kept by rclone when using our exclusion file
     func keptRelativePaths(filesOnly: Bool) throws -> Set<String> {
         let output = try Shell.run("rclone", [
-            "lsf", "-R", filesOnly ? "--files-only" : "--dirs-only",
-            "--exclude-from", excludeFileURL.path(),
-            baseURL.path()
+            "lsf",
+            "-R",
+            filesOnly ? "--files-only" : "--dirs-only",
+            "--exclude-from", excludeFileURL.path(percentEncoded: false),
+            baseURL.path(percentEncoded: false)
         ])
 
         var kept: Set<String> = filesOnly ? [] : [""]

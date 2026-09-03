@@ -11,7 +11,7 @@ extension NSMetadataQuery {
     static func paths(predicateFormat: String, arguments: [Any] = [], baseURL: URL) -> [URL] {
         let query = NSMetadataQuery()
         query.predicate = NSPredicate(format: predicateFormat, argumentArray: arguments)
-        query.searchScopes = [baseURL.standardizedFileURL.path()]
+        query.searchScopes = [baseURL.standardizedFileURL.path(percentEncoded: false)]
 
         var finished = false
         let observer = NotificationCenter.default.addObserver(

@@ -16,7 +16,7 @@ enum AppError {
 extension AppError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .configNotFound(let configURL): return "Configuration file not found at \(configURL.path())"
+        case .configNotFound(let configURL): return "Configuration file not found at \(configURL.path(percentEncoded: false))"
         case .configMalformed(let error): return "Invalidation configuration: \(error)"
         case .commandFailed(let command, let status, let stderr): return "\(command) failed (\(status)): \(stderr)"
         }

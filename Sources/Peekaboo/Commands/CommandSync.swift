@@ -15,10 +15,7 @@ struct CommandSync: ParsableCommand {
     )
 
     mutating func run() throws {
-        guard let config = try? Config.readConfig() else {
-            print("Configuration file couldn't be read properly.")
-            return
-        }
+        let config = try Config.readConfig()
 
         for exclusionFile in config.exclusionFiles {
             print("-- Exclusion file: \(exclusionFile.path.standardizedFileURL.path())")

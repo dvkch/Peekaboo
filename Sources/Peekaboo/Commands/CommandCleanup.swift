@@ -15,11 +15,8 @@ struct CommandCleanup: ParsableCommand {
     )
     
     mutating func run() throws {
-        guard let config = try? Config.readConfig() else {
-            print("Configuration file couldn't be read properly.")
-            return
-        }
-        
+        let config = try Config.readConfig()
+
         let timeMachineBackups = TimeMachine.listTimeMachineBackups()
         
         print("Cleaning up TimeMachine backups according to rclone exclusion files")

@@ -13,12 +13,17 @@ struct Config: Decodable {
     static let configPath = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/peekaboo.json")
 
     // MARK: Init
-    static func readConfig() throws -> Config? {
+    static func readConfig() throws(AppError) -> Config {
         guard let configData = try? Data(contentsOf: configPath) else {
-            return nil
+            throw .configNotFound(configPath)
         }
 
-        return try JSONDecoder().decode(Config.self, from: configData)
+        do {
+            return try JSONDecoder().decode(Config.self, from: configData)
+        }
+        catch {
+            throw .configMalformed(error)
+        }
     }
     
     // MARK: Structs
@@ -45,14 +50,29 @@ struct Config: Decodable {
     struct FinderTag: Decodable {
         let enabled: Bool
         let name: String
+        
+        enum CodingKeys: String, CodingKey {
+            case enabled = "enabled"
+            case name = "name"
+        }
     }
     
     struct TimeMachine: Decodable {
         let enabled: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case enabled = "enabled"
+        }
     }
     
     // MARK: Properties
     let exclusionFiles: [ExclusionFile]
     let finderTag: FinderTag
     let timeMachine: TimeMachine
+    
+    enum CodingKeys: String, CodingKey {
+        case exclusionFiles = "exclusion_files"
+        case finderTag = "finder_tag"
+        case timeMachine = "time_machine"
+    }
 }

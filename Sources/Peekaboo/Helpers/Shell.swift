@@ -8,17 +8,6 @@
 import Foundation
 
 enum Shell {
-    enum ShellError: Error, CustomStringConvertible {
-        case commandFailed(command: String, status: Int32, stderr: String)
-
-        var description: String {
-            switch self {
-            case .commandFailed(let command, let status, let stderr):
-                return "\(command) failed (\(status)): \(stderr)"
-            }
-        }
-    }
-
     /// Runs `command` (resolved via PATH) with `arguments` and returns its
     /// stdout. Throws if the process exits non-zero.
     @discardableResult
@@ -38,7 +27,7 @@ enum Shell {
         process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
-            throw ShellError.commandFailed(
+            throw AppError.commandFailed(
                 command: ([command] + arguments).joined(separator: " "),
                 status: process.terminationStatus,
                 stderr: String(data: stderrData, encoding: .utf8) ?? ""

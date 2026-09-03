@@ -21,6 +21,9 @@ struct FileURL {
     var asURL: URL { url }
     var asPath: String { url.path(percentEncoded: false) }
     var asNSURL: NSURL { url as NSURL }
+    var isWritable: Bool {
+        FileManager.default.isWritableFile(atPath: asPath)
+    }
 }
 
 extension FileURL: Hashable, Equatable {}

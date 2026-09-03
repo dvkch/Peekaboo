@@ -27,7 +27,16 @@ struct CommandSync: ParsableCommand {
 
             for tool in activeTools(config: config, baseURL: exclusionFile.relativeTo) {
                 let toolExclusions = Set((try? tool.excludedURLs()) ?? [])
-                try? tool.exclude(urls: Array(rcloneExclusions.subtracting(toolExclusions)))
+
+                let toAdd = rcloneExclusions.subtracting(toolExclusions)
+                let writable = toAdd.filter(\.isWritable)
+                let unwritable = toAdd.subtracting(writable)
+
+                for url in unwritable {
+                    print("  (skipping \(url.asPath) — no write access, likely a protected system directory)")
+                }
+
+                try? tool.exclude(urls: Array(writable))
                 try? tool.include(urls: Array(toolExclusions.subtracting(rcloneExclusions)))
             }
             print("")

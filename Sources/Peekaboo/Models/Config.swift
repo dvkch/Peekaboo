@@ -18,16 +18,17 @@ struct Config: Decodable {
             throw .configNotFound(configPath)
         }
 
+        let config: Config
         do {
-            let config = try JSONDecoder().decode(Config.self, from: configData)
-            try config.validateNonOverlappingBaseURLs()
-            return config
-        }
-        catch {
+            config = try JSONDecoder().decode(Config.self, from: configData)
+        } catch {
             throw .configMalformed(error)
         }
+
+        try config.validateNonOverlappingBaseURLs()
+        return config
     }
-    
+
     // MARK: Structs
     struct ExclusionFile: Decodable {
         let path: FileURL

@@ -9,5 +9,5 @@ import Foundation
 
 protocol ExclusionListTool {
     var name: String { get }
-    var baseURL: URL { get }
+    var baseURL: FileURL { get }
 }

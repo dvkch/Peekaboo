@@ -18,8 +18,8 @@ struct CommandSync: ParsableCommand {
         let config = try Config.readConfig()
 
         for exclusionFile in config.exclusionFiles {
-            print("-- Exclusion file: \(exclusionFile.path.standardizedFileURL.path(percentEncoded: false))")
-            print("-- Relative to: \(exclusionFile.relativeTo.standardizedFileURL.path(percentEncoded: false))")
+            print("-- Exclusion file: \(exclusionFile.path.asPath)")
+            print("-- Relative to: \(exclusionFile.relativeTo.asPath)")
 
             let rclone = Rclone(excludeFileURL: exclusionFile.path, baseURL: exclusionFile.relativeTo)
             let rcloneExclusions = Set(try rclone.excludedURLs())
@@ -30,12 +30,14 @@ struct CommandSync: ParsableCommand {
                 try? tool.exclude(urls: Array(rcloneExclusions.subtracting(toolExclusions)))
                 try? tool.include(urls: Array(toolExclusions.subtracting(rcloneExclusions)))
             }
+            print("")
+            print("")
         }
     }
 }
 
 private extension CommandSync {
-    func activeTools(config: Config, baseURL: URL) -> [ExclusionListSource & ExclusionListDestination] {
+    func activeTools(config: Config, baseURL: FileURL) -> [ExclusionListSource & ExclusionListDestination] {
         var tools: [ExclusionListSource & ExclusionListDestination] = []
         if config.finderTag.enabled {
             tools.append(FinderTag(tagName: config.finderTag.name, baseURL: baseURL))

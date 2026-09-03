@@ -28,8 +28,8 @@ struct Config: Decodable {
     
     // MARK: Structs
     struct ExclusionFile: Decodable {
-        let path: URL
-        let relativeTo: URL
+        let path: FileURL
+        let relativeTo: FileURL
         
         enum CodingKeys: String, CodingKey {
             case path = "path"
@@ -42,8 +42,8 @@ struct Config: Decodable {
             let pathString = try container.decode(String.self, forKey: Config.ExclusionFile.CodingKeys.path)
             let relativeToString = try container.decode(String.self, forKey: Config.ExclusionFile.CodingKeys.relativeTo)
 
-            self.path = URL(fileURLWithPath: (pathString as NSString).expandingTildeInPath).standardizedFileURL
-            self.relativeTo = URL(fileURLWithPath: (relativeToString as NSString).expandingTildeInPath).standardizedFileURL
+            self.path = FileURL(path: pathString)
+            self.relativeTo = FileURL(path: relativeToString)
         }
     }
     

@@ -10,12 +10,12 @@ import Foundation
 struct Spotlight: ExclusionListTool {
 
     // MARK: Init
-    init(baseURL: URL) {
+    init(baseURL: FileURL) {
         self.baseURL = baseURL
     }
 
     // MARK: Properties
-    let baseURL: URL
+    let baseURL: FileURL
 
     var name: String { "Spotlight" }
 

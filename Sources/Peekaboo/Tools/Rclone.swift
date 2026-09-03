@@ -10,29 +10,29 @@ import Foundation
 struct Rclone: ExclusionListTool {
 
     // MARK: Init
-    init(excludeFileURL: URL, baseURL: URL) {
+    init(excludeFileURL: FileURL, baseURL: FileURL) {
         self.excludeFileURL = excludeFileURL
         self.baseURL = baseURL
     }
 
     // MARK: Properties
-    let excludeFileURL: URL
-    let baseURL: URL
+    let excludeFileURL: FileURL
+    let baseURL: FileURL
 
     var name: String { "Rclone" }
 }
 
 extension Rclone: ExclusionListSource {
     // walk each kept directory and check for ignored files in it
-    func excludedURLs() throws -> [URL] {
+    func excludedURLs() throws -> [FileURL] {
         let keptDirs = try keptRelativePaths(filesOnly: false)
         let keptFiles = try keptRelativePaths(filesOnly: true)
 
-        var excluded: [URL] = []
+        var excluded: [FileURL] = []
         let fm = FileManager.default
 
         for reldir in keptDirs.sorted() {
-            let dirURL = reldir.isEmpty ? baseURL : baseURL.appendingPathComponent(reldir)
+            let dirURL = reldir.isEmpty ? baseURL.asURL : baseURL.asURL.appendingPathComponent(reldir)
 
             guard let children = try? fm.contentsOfDirectory(
                 at: dirURL,
@@ -49,7 +49,7 @@ extension Rclone: ExclusionListSource {
                     : keptFiles.contains(childRel)
 
                 guard !stillKept else { continue }
-                excluded.append(child)
+                excluded.append(FileURL(url: child))
             }
         }
 
@@ -64,8 +64,8 @@ private extension Rclone {
             "lsf",
             "-R",
             filesOnly ? "--files-only" : "--dirs-only",
-            "--exclude-from", excludeFileURL.path(percentEncoded: false),
-            baseURL.path(percentEncoded: false)
+            "--exclude-from", excludeFileURL.asPath,
+            baseURL.asPath
         ])
 
         var kept: Set<String> = filesOnly ? [] : [""]

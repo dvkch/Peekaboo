@@ -34,7 +34,7 @@ struct CommandCleanup: ParsableCommand {
             
             for excludedPath in excludedPaths {
                 for backup in timeMachineBackups {
-                    print("Deleting \(excludedPath.standardizedFileURL.path(percentEncoded: false)) from \(backup)...")
+                    print("Deleting \(excludedPath.asPath) from \(backup)...")
                     // TODO: reenable, but this is a test for now
                     // try TimeMachine.delete(url: excludedPath, fromExistingBackup: backup)
                 }

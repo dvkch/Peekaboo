@@ -8,10 +8,10 @@
 import Foundation
 
 extension NSMetadataQuery {
-    static func paths(predicateFormat: String, arguments: [Any] = [], baseURL: URL) -> [URL] {
+    static func paths(predicateFormat: String, arguments: [Any] = [], baseURL: FileURL) -> [FileURL] {
         let query = NSMetadataQuery()
         query.predicate = NSPredicate(format: predicateFormat, argumentArray: arguments)
-        query.searchScopes = [baseURL.standardizedFileURL.path(percentEncoded: false)]
+        query.searchScopes = [baseURL.asPath]
 
         var finished = false
         let observer = NotificationCenter.default.addObserver(
@@ -32,7 +32,7 @@ extension NSMetadataQuery {
         return query.results.compactMap { result in
             (result as? NSMetadataItem)?.value(forAttribute: NSMetadataItemPathKey) as? String
         }.map {
-            URL(filePath: $0)
+            FileURL(path: $0)
         }
     }
 }

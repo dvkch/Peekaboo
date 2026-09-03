@@ -21,15 +21,17 @@ struct CommandSync: ParsableCommand {
         }
 
         for exclusionFile in config.exclusionFiles {
-            print("-- Exclusion file: \(exclusionFile.path.path())")
-            print("-- Relative to: \(exclusionFile.relativeTo.path())")
+            print("-- Exclusion file: \(exclusionFile.path.standardizedFileURL.path())")
+            print("-- Relative to: \(exclusionFile.relativeTo.standardizedFileURL.path())")
 
             let rclone = Rclone(excludeFileURL: exclusionFile.path, baseURL: exclusionFile.relativeTo)
-            let rcloneExcludedURLs = Set(try rclone.excludedURLs())
-            print("Found \(rcloneExcludedURLs.count) excluded items")
+            let rcloneExclusions = Set(try rclone.excludedURLs())
+            print("Found \(rcloneExclusions.count) excluded items")
 
             for tool in activeTools(config: config, baseURL: exclusionFile.relativeTo) {
-                sync(rcloneExcludedURLs: rcloneExcludedURLs, with: tool)
+                let toolExclusions = Set((try? tool.excludedURLs()) ?? [])
+                try? tool.exclude(urls: Array(rcloneExclusions.subtracting(toolExclusions)))
+                try? tool.include(urls: Array(toolExclusions.subtracting(rcloneExclusions)))
             }
         }
     }
@@ -37,42 +39,13 @@ struct CommandSync: ParsableCommand {
 
 private extension CommandSync {
     func activeTools(config: Config, baseURL: URL) -> [ExclusionListSource & ExclusionListDestination] {
-        var destinations: [ExclusionListSource & ExclusionListDestination] = []
-
+        var tools: [ExclusionListSource & ExclusionListDestination] = []
         if config.finderTag.enabled {
-            destinations.append(FinderTag(tagName: config.finderTag.name, baseURL: baseURL))
+            tools.append(FinderTag(tagName: config.finderTag.name, baseURL: baseURL))
         }
         if config.timeMachine.enabled {
-            destinations.append(TimeMachine(baseURL: baseURL))
+            tools.append(TimeMachine(baseURL: baseURL))
         }
-
-        return destinations
-    }
-
-    /// Brings one destination in line with what rclone currently wants
-    /// excluded: adds what's missing, removes what's stale.
-    func sync(rcloneExcludedURLs: Set<URL>, with tool: ExclusionListSource & ExclusionListDestination) {
-        let toolExcludedURLs = Set((try? tool.excludedURLs()) ?? [])
-
-        let toAdd = rcloneExcludedURLs.subtracting(toolExcludedURLs)
-        let toRemove = toolExcludedURLs.subtracting(rcloneExcludedURLs)
-
-        for url in toAdd.sorted(by: { $0.path() < $1.path() }) {
-            do {
-                try tool.exclude(url: url)
-                print("ADD    [\(tool.name)]: \(url.path())")
-            } catch {
-                print("  (failed to exclude \(url.path()) via \(tool.name): \(error))")
-            }
-        }
-
-        for url in toRemove.sorted(by: { $0.path() < $1.path() }) {
-            do {
-                try tool.include(url: url)
-                print("REMOVE [\(tool.name)]: \(url.path())")
-            } catch {
-                print("  (failed to re-include \(url.path()) via \(tool.name): \(error))")
-            }
-        }
+        return tools
     }
 }

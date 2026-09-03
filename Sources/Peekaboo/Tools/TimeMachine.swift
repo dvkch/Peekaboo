@@ -21,30 +21,61 @@ struct TimeMachine: ExclusionListTool {
 
 extension TimeMachine: ExclusionListSource {
     func excludedURLs() throws -> [URL] {
-        NSMetadataQuery.paths(
-            predicateFormat: "com_apple_backup_excludeItem = %@",
-            arguments: ["com.apple.backupd"],
-            baseURL: baseURL
-        )
+        let base = baseURL.standardizedFileURL.path()
+        return TimeMachine.currentSkipPaths()
+            .map { URL(filePath: $0) }
+            .filter {
+                let p = $0.standardizedFileURL.path()
+                return p == base || p.hasPrefix(base + "/")
+            }
     }
 }
 
 extension TimeMachine: ExclusionListDestination {
-    func exclude(url: URL) throws {
-        try TimeMachine.setExcluded(true, url: url)
+    func exclude(urls: [URL]) throws {
+        guard !urls.isEmpty else { return }
+        var paths = TimeMachine.currentSkipPaths()
+
+        for url in urls {
+            let path = url.standardizedFileURL.path()
+            guard !paths.contains(path) else { continue }
+            paths.append(path)
+            print("ADD    [\(name)]: \(path)")
+        }
+
+        try TimeMachine.writeSkipPaths(paths)
     }
 
-    func include(url: URL) throws {
-        try TimeMachine.setExcluded(false, url: url)
+    func include(urls: [URL]) throws {
+        guard !urls.isEmpty else { return }
+        let toRemove = Set(urls.map { $0.standardizedFileURL.path() })
+        var paths = TimeMachine.currentSkipPaths()
+        paths.removeAll { toRemove.contains($0) }
+
+        for url in urls {
+            print("REMOVE [\(name)]: \(url.standardizedFileURL.path())")
+        }
+
+        try TimeMachine.writeSkipPaths(paths)
     }
 }
 
 private extension TimeMachine {
-    static func setExcluded(_ excluded: Bool, url: URL) throws {
-        var url = url
-        var resourceValues = URLResourceValues()
-        resourceValues.isExcludedFromBackup = excluded
-        try url.setResourceValues(resourceValues)
+    static let plistPath = "/Library/Preferences/com.apple.TimeMachine.plist"
+
+    /// Reads SkipPaths directly from the plist — no subprocess needed,
+    /// same reason `defaults read` never needed sudo: this file is
+    /// world-readable, only writes are privileged.
+    static func currentSkipPaths() -> [String] {
+        guard let data = FileManager.default.contents(atPath: plistPath),
+              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
+              let skipPaths = plist["SkipPaths"] as? [String]
+        else { return [] }
+        return skipPaths
+    }
+
+    static func writeSkipPaths(_ paths: [String]) throws {
+        try Shell.run("sudo", ["defaults", "write", plistPath, "SkipPaths", "-array"] + paths)
     }
 }
 

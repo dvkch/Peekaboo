@@ -28,15 +28,29 @@ extension FinderTag: ExclusionListSource {
     }
 }
 
+// Logic actually is reversed here. The goal is to have a visible tag that contains all the items
+// excluded from rclone/TimeMachine/Spotlight. So excluding an item means adding the tag.
 extension FinderTag: ExclusionListDestination {
-    // Logic actually is reversed here. The goal is to have a visible tag that contains all the items
-    // excluded from rclone/TimeMachine/Spotlight. So excluding an item means adding the tag.
-    func exclude(url: URL) throws {
-        try FinderTag.addTag(tagName, to: url)
+    func exclude(urls: [URL]) throws {
+        for url in urls {
+            do {
+                try FinderTag.addTag(tagName, to: url)
+                print("ADD    [\(name)]: \(url.standardizedFileURL.path())")
+            } catch {
+                print("  (failed to tag \(url.standardizedFileURL.path()): \(error))")
+            }
+        }
     }
-    
-    func include(url: URL) throws {
-        try FinderTag.removeTag(tagName, from: url)
+
+    func include(urls: [URL]) throws {
+        for url in urls {
+            do {
+                try FinderTag.removeTag(tagName, from: url)
+                print("REMOVE [\(name)]: \(url.standardizedFileURL.path())")
+            } catch {
+                print("  (failed to untag \(url.standardizedFileURL.path()): \(error))")
+            }
+        }
     }
 }
 

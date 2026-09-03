@@ -30,23 +30,23 @@ struct Config: Decodable {
     }
 
     // MARK: Structs
-    struct ExclusionFile: Decodable {
+    struct Location: Decodable {
         let path: FileURL
-        let relativeTo: FileURL
+        let exclusionFiles: [FileURL]
         
         enum CodingKeys: String, CodingKey {
             case path = "path"
-            case relativeTo = "relative_to"
+            case exclusionFiles = "exclusion_files"
         }
         
         init(from decoder: any Decoder) throws {
-            let container: KeyedDecodingContainer<Config.ExclusionFile.CodingKeys> = try decoder.container(keyedBy: Config.ExclusionFile.CodingKeys.self)
+            let container = try decoder.container(keyedBy: CodingKeys.self)
 
-            let pathString = try container.decode(String.self, forKey: Config.ExclusionFile.CodingKeys.path)
-            let relativeToString = try container.decode(String.self, forKey: Config.ExclusionFile.CodingKeys.relativeTo)
+            let pathString = try container.decode(String.self, forKey: .path)
+            let exclusionFilesStrings = try container.decode([String].self, forKey: .exclusionFiles)
 
             self.path = FileURL(path: pathString)
-            self.relativeTo = FileURL(path: relativeToString)
+            self.exclusionFiles = exclusionFilesStrings.map { FileURL(path: $0) }
         }
     }
     
@@ -69,12 +69,12 @@ struct Config: Decodable {
     }
     
     // MARK: Properties
-    let exclusionFiles: [ExclusionFile]
+    let locations: [Location]
     let finderTag: FinderTag
     let timeMachine: TimeMachine
     
     enum CodingKeys: String, CodingKey {
-        case exclusionFiles = "exclusion_files"
+        case locations = "locations"
         case finderTag = "finder_tag"
         case timeMachine = "time_machine"
     }
@@ -87,12 +87,12 @@ extension Config {
     /// pair's writes could be silently undone by the other pair's diff on
     /// the very next run.
     func validateNonOverlappingBaseURLs() throws(AppError) {
-        let bases = exclusionFiles.map { $0.relativeTo }
+        let locations = self.locations.map { $0.path }
         
-        for i in bases.indices {
-            for j in bases.indices where j != i {
-                let a = bases[i]
-                let b = bases[j]
+        for i in locations.indices {
+            for j in locations.indices where j != i {
+                let a = locations[i]
+                let b = locations[j]
                 if a == b || a.asPath.hasPrefix(b.asPath + "/") {
                     throw .overlappingBaseURLs(a, b)
                 }

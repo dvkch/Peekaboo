@@ -23,16 +23,16 @@ struct CommandSync: ParsableCommand {
             print("")
         }
 
-        for exclusionFile in config.exclusionFiles {
+        for location in config.locations {
             let startDate = Date.now
-            print("-- Exclusion file: \(exclusionFile.path.asPath)")
-            print("-- Relative to: \(exclusionFile.relativeTo.asPath)")
+            print("-- Location: \(location.path.asPath)")
+            print("-- Exclusion files: \(location.exclusionFiles.map(\.asPath).joined(separator: ", "))")
 
-            let rclone = Rclone(excludeFileURL: exclusionFile.path, baseURL: exclusionFile.relativeTo)
+            let rclone = Rclone(location: location)
             let rcloneExclusions = Set(try rclone.excludedURLs())
             print("Found \(rcloneExclusions.count) excluded items")
 
-            for tool in activeTools(config: config, baseURL: exclusionFile.relativeTo) {
+            for tool in activeTools(config: config, baseURL: location.path) {
                 let toolExclusions = Set((try? tool.excludedURLs()) ?? [])
 
                 let toAdd = rcloneExclusions.subtracting(toolExclusions)

@@ -10,7 +10,7 @@ import ArgumentParser
 
 struct CommandCleanup: ParsableCommand {
     static var configuration = CommandConfiguration(
-        commandName: "Cleanup",
+        commandName: "cleanup",
         abstract: "Cleanup excluded files from TimeMachine backups"
     )
     
@@ -25,10 +25,10 @@ struct CommandCleanup: ParsableCommand {
         try Shell.run("sudo", ["-v"])
         print("")
 
-        for exclusionFile in config.exclusionFiles {
-            print("-- Exclusion file: \(exclusionFile.path)")
-            print("-- Relative to: \(exclusionFile.relativeTo)")
-            let rclone = Rclone(excludeFileURL: exclusionFile.path, baseURL: exclusionFile.relativeTo)
+        for location in config.locations {
+            print("-- Location: \(location.path.asPath)")
+            print("-- Exclusion files: \(location.exclusionFiles.map(\.asPath).joined(separator: ", "))")
+            let rclone = Rclone(location: location)
             let excludedPaths = try rclone.excludedURLs()
             print("Found \(excludedPaths.count) excluded items")
             

@@ -10,14 +10,14 @@ import Foundation
 struct Rclone: ExclusionListTool {
 
     // MARK: Init
-    init(excludeFileURL: FileURL, baseURL: FileURL) {
-        self.excludeFileURL = excludeFileURL
-        self.baseURL = baseURL
+    init(location: Config.Location) {
+        self.baseURL = location.path
+        self.excludeFilesURLs = location.exclusionFiles
     }
 
     // MARK: Properties
-    let excludeFileURL: FileURL
     let baseURL: FileURL
+    let excludeFilesURLs: [FileURL]
 
     var name: String { "Rclone" }
 }
@@ -60,13 +60,12 @@ extension Rclone: ExclusionListSource {
 private extension Rclone {
     // list the files that are kept by rclone when using our exclusion file
     func keptRelativePaths(filesOnly: Bool) throws -> Set<String> {
-        let output = try Shell.run("rclone", [
-            "lsf",
-            "-R",
-            filesOnly ? "--files-only" : "--dirs-only",
-            "--exclude-from", excludeFileURL.asPath,
-            baseURL.asPath
-        ])
+        var args = ["lsf", "-R", filesOnly ? "--files-only" : "--dirs-only"]
+        for excludeFileURL in self.excludeFilesURLs {
+            args += [] + ["--exclude-from", excludeFileURL.asPath]
+        }
+        args += [baseURL.asPath]
+        let output = try Shell.run("rclone", args)
 
         var kept: Set<String> = filesOnly ? [] : [""]
         for line in output.split(separator: "\n") {

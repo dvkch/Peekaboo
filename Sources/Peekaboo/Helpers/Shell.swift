@@ -15,17 +15,31 @@ enum Shell {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = [command] + arguments
-
+        
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
         process.standardOutput = stdoutPipe
         process.standardError = stderrPipe
-
+        
+        var stdoutData = Data()
+        var stderrData = Data()
+        let group = DispatchGroup()
+        
+        group.enter()
+        DispatchQueue.global().async {
+            stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        group.enter()
+        DispatchQueue.global().async {
+            stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        
         try process.run()
-        let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        group.wait()
         process.waitUntilExit()
-
+        
         guard process.terminationStatus == 0 else {
             throw AppError.commandFailed(
                 command: ([command] + arguments).joined(separator: " "),
@@ -33,7 +47,7 @@ enum Shell {
                 stderr: String(data: stderrData, encoding: .utf8) ?? ""
             )
         }
-
+        
         return String(data: stdoutData, encoding: .utf8) ?? ""
     }
 }

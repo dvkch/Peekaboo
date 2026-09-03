@@ -16,6 +16,12 @@ struct CommandSync: ParsableCommand {
 
     mutating func run() throws {
         let config = try Config.readConfig()
+        
+        if config.timeMachine.enabled {
+            print("Time Machine sync requires your password:")
+            try Shell.run("sudo", ["-v"])
+            print("")
+        }
 
         for exclusionFile in config.exclusionFiles {
             print("-- Exclusion file: \(exclusionFile.path.asPath)")

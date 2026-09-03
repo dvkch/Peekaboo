@@ -19,7 +19,9 @@ struct Config: Decodable {
         }
 
         do {
-            return try JSONDecoder().decode(Config.self, from: configData)
+            let config = try JSONDecoder().decode(Config.self, from: configData)
+            try config.validateNonOverlappingBaseURLs()
+            return config
         }
         catch {
             throw .configMalformed(error)
@@ -74,5 +76,24 @@ struct Config: Decodable {
         case exclusionFiles = "exclusion_files"
         case finderTag = "finder_tag"
         case timeMachine = "time_machine"
+    }
+}
+
+extension Config {
+    /// Ensures no two exclusion files' base URLs are nested inside each
+    /// other (or identical). Each pair's tools only see their own base
+    /// URL's slice of the world — if two pairs' base URLs overlapped, one
+    /// pair's writes could be silently undone by the other pair's diff on
+    /// the very next run.
+    func validateNonOverlappingBaseURLs() throws(AppError) {
+        let bases = exclusionFiles.map { $0.relativeTo }
+        
+        for a in bases {
+            for b in bases where a != b {
+                if a.asPath.hasPrefix(b.asPath + "/") {
+                    throw .overlappingBaseURLs(a, b)
+                }
+            }
+        }
     }
 }

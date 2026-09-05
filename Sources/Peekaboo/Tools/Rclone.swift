@@ -49,7 +49,11 @@ extension Rclone: ExclusionListSource {
                     : keptFiles.contains(childRel)
 
                 guard !stillKept else { continue }
-                excluded.append(FileURL(url: child))
+
+                let childURL = FileURL(url: child)
+                guard !childURL.isSpecialFile else { continue }
+                guard childURL.isReadable else { continue }
+                excluded.append(childURL)
             }
         }
 
@@ -62,7 +66,7 @@ private extension Rclone {
     func keptRelativePaths(filesOnly: Bool) throws -> Set<String> {
         var args = ["lsf", "-R", filesOnly ? "--files-only" : "--dirs-only"]
         for excludeFileURL in self.excludeFilesURLs {
-            args += [] + ["--exclude-from", excludeFileURL.asPath]
+            args += ["--exclude-from", excludeFileURL.asPath]
         }
         args += [baseURL.asPath]
         let output = try Shell.run("rclone", args)

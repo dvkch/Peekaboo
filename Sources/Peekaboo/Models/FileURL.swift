@@ -21,8 +21,20 @@ struct FileURL {
     var asURL: URL { url }
     var asPath: String { url.path(percentEncoded: false) }
     var asNSURL: NSURL { url as NSURL }
+    var isReadable: Bool {
+        FileManager.default.isReadableFile(atPath: asPath)
+    }
     var isWritable: Bool {
         FileManager.default.isWritableFile(atPath: asPath)
+    }
+    var isSpecialFile: Bool {
+        let type = try? url.resourceValues(forKeys: [.fileResourceTypeKey]).fileResourceType
+        switch type {
+        case .namedPipe, .socket, .characterSpecial, .blockSpecial:
+            return true
+        default:
+            return false
+        }
     }
 }
 

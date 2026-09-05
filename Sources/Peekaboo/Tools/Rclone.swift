@@ -57,6 +57,7 @@ extension Rclone: ExclusionListSource {
             }
         }
 
+        Log.i(name, "Found \(excluded.count) excluded items")
         return excluded
     }
 }

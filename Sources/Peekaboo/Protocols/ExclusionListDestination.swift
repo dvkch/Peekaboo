@@ -8,6 +8,5 @@
 import Foundation
 
 protocol ExclusionListDestination: ExclusionListTool {
-    func exclude(urls: [FileURL]) throws
-    func include(urls: [FileURL]) throws
+    func markURLs(_ urls: [FileURL], excluded: Bool) throws
 }

@@ -31,67 +31,68 @@ extension FinderTag: ExclusionListSource {
 // Logic actually is reversed here. The goal is to have a visible tag that contains all the items
 // excluded from rclone/TimeMachine/Spotlight. So excluding an item means adding the tag.
 extension FinderTag: ExclusionListDestination {
-    func exclude(urls: [FileURL]) throws {
+    func markURLs(_ urls: [FileURL], excluded: Bool) throws {
         for url in urls {
-            do {
-                try FinderTag.addTag(tagName, to: url)
-                print("ADD    [\(name)]: \(url.asPath)")
-            } catch {
-                print("  (failed to tag \(url.asPath): \(error))")
-            }
+            try setTag(to: url, mark: excluded)
         }
     }
+    
+    private func setTag(to url: FileURL, mark: Bool) throws {
+        guard url.isWritable else {
+            Log.d(name, "SKIPPPED - URL is not writable \(url.asPath)")
+            return
+        }
 
-    func include(urls: [FileURL]) throws {
-        for url in urls {
-            do {
-                try FinderTag.removeTag(tagName, from: url)
-                print("REMOVE [\(name)]: \(url.asPath)")
-            } catch {
-                print("  (failed to untag \(url.asPath): \(error))")
-            }
+        var tags = url.tags
+        switch tags.setElement(tagName, present: mark) {
+        case .added:
+            Log.i(name, "ADDED    - \(url.asPath)")
+        case .removed:
+            Log.i(name, "REMOVED  - \(url.asPath)")
+        case .alreadyPresent:
+            Log.d(name, "SKIPPPED - Tag already exists for \(url.asPath)")
+            return
+        case .alreadyAbsent:
+            Log.d(name, "SKIPPPED - Tag already absent for \(url.asPath)")
+            return
+        }
+        
+        do {
+            try url.asNSURL.setResourceValue(tags, forKey: .tagNamesKey)
+        }
+        catch {
+            Log.w(name, "FAILED   - to set tag on \(url.asPath): \(error)")
         }
     }
 }
 
 private extension FinderTag {
-    static func addTag(_ tag: String, to url: FileURL) throws {
-        var existing = currentTags(for: url)
-        guard !existing.contains(tag) else { return }
-        existing.append(tag)
-        try url.asNSURL.setResourceValue(existing, forKey: .tagNamesKey)
-    }
-
-    static func removeTag(_ tag: String, from url: FileURL) throws {
-        var existing = currentTags(for: url)
-        guard let index = existing.firstIndex(of: tag) else { return }
-        existing.remove(at: index)
-        try url.asNSURL.setResourceValue(existing, forKey: .tagNamesKey)
-    }
-
-    static func currentTags(for url: FileURL) -> [String] {
-        (try? url.asNSURL.resourceValues(forKeys: [.tagNamesKey]))?[.tagNamesKey] as? [String] ?? []
-    }
-
     static func taggedItems(under baseURL: FileURL, tag: String) -> [FileURL] {
         var found: [FileURL] = []
-        let fm = FileManager.default
 
         func visit(_ dir: FileURL) {
-            guard let children = try? fm.contentsOfDirectory(
-                at: dir.asURL,
-                includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey, .tagNamesKey]
-            ) else { return }
+            let propertyKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .tagNamesKey]
+            var children: [FileURL] = []
 
-            for child in children.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
-                let values = try? child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
-                guard values?.isSymbolicLink != true else { continue }
-
-                let childURL = FileURL(url: child)
-                if currentTags(for: childURL).contains(tag) {
-                    found.append(childURL)
-                } else if values?.isDirectory == true {
-                    visit(childURL)
+            do {
+                children = try FileManager.default.contentsOfDirectory(at: dir.asURL, includingPropertiesForKeys: propertyKeys)
+                    .sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
+                    .map { FileURL(url: $0) }
+            }
+            catch {
+                Log.w("FinderTag", "Couldn't visit \(dir.asPath), skipping")
+                return
+            }
+                
+            for child in children {
+                guard !child.isSymbolicLink else { continue }
+                
+                if child.tags.contains(tag) {
+                    found.append(child)
+                }
+                else if child.isDirectory {
+                    // only visit non excluded folders
+                    visit(child)
                 }
             }
         }

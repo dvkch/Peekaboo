@@ -14,7 +14,11 @@ struct CommandCleanup: ParsableCommand {
         abstract: "Cleanup excluded files from TimeMachine backups"
     )
     
+    @Option(help: "Log verbosity level.")
+    var logLevel: Log.Level = .info
+
     mutating func run() throws {
+        Log.level = logLevel
         let config = try Config.readConfig()
 
         let timeMachineBackups = TimeMachine.listTimeMachineBackups()
@@ -30,13 +34,10 @@ struct CommandCleanup: ParsableCommand {
             print("-- Exclusion files: \(location.exclusionFiles.map(\.asPath).joined(separator: ", "))")
             let rclone = Rclone(location: location)
             let excludedPaths = try rclone.excludedURLs()
-            print("Found \(excludedPaths.count) excluded items")
             
             for excludedPath in excludedPaths {
                 for backup in timeMachineBackups {
-                    print("Deleting \(excludedPath.asPath) from \(backup)...")
-                    // TODO: reenable, but this is a test for now
-                    // try TimeMachine.delete(url: excludedPath, fromExistingBackup: backup)
+                    try TimeMachine.delete(url: excludedPath, fromExistingBackup: backup)
                 }
             }
         }

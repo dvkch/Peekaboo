@@ -8,13 +8,18 @@
 import Foundation
 import ArgumentParser
 
+// TODO: uninstall asimov and cleanup its exclusions
 struct CommandSync: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "sync",
         abstract: "Update exclusion lists"
     )
 
+    @Option(help: "Log verbosity level.")
+    var logLevel: Log.Level = .info
+
     mutating func run() throws {
+        Log.level = logLevel
         let config = try Config.readConfig()
         
         if config.timeMachine.enabled {
@@ -30,21 +35,13 @@ struct CommandSync: ParsableCommand {
 
             let rclone = Rclone(location: location)
             let rcloneExclusions = Set(try rclone.excludedURLs())
-            print("Found \(rcloneExclusions.count) excluded items")
 
             for tool in activeTools(config: config, baseURL: location.path) {
                 let toolExclusions = Set((try? tool.excludedURLs()) ?? [])
 
                 let toAdd = rcloneExclusions.subtracting(toolExclusions)
-                let writable = toAdd.filter(\.isWritable)
-                let unwritable = toAdd.subtracting(writable)
-
-                for url in unwritable {
-                    print("  (skipping \(url.asPath) — no write access, likely a protected system directory)")
-                }
-
-                try? tool.exclude(urls: Array(writable))
-                try? tool.include(urls: Array(toolExclusions.subtracting(rcloneExclusions)))
+                try? tool.markURLs(Array(toAdd), excluded: true)
+                try? tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)), excluded: false)
             }
             print("-> Synced in \(Int(Date.now.timeIntervalSince(startDate)))s")
             print("")

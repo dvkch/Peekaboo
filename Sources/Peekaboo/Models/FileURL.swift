@@ -36,6 +36,15 @@ struct FileURL {
             return false
         }
     }
+    var tags: [String] {
+        return (try? asNSURL.resourceValues(forKeys: [.tagNamesKey]))?[.tagNamesKey] as? [String] ?? []
+    }
+    var isSymbolicLink: Bool {
+        (try? asNSURL.resourceValues(forKeys: [.isSymbolicLinkKey]))?[.isSymbolicLinkKey] as? Bool ?? false
+    }
+    var isDirectory: Bool {
+        (try? asNSURL.resourceValues(forKeys: [.isDirectoryKey]))?[.isDirectoryKey] as? Bool ?? false
+    }
 }
 
 extension FileURL: Hashable, Equatable {}

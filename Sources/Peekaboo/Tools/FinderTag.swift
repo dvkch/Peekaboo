@@ -61,7 +61,7 @@ extension FinderTag: ExclusionListDestination {
             try url.asNSURL.setResourceValue(tags, forKey: .tagNamesKey)
         }
         catch {
-            Log.w(name, "FAILED   - to set tag on \(url.asPath): \(error)")
+            Log.w(name, "FAILED   - to set tag on \(url.asPath): \(error.localizedDescription)")
         }
     }
 }

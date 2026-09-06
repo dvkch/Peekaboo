@@ -38,11 +38,16 @@ struct CommandSync: ParsableCommand {
             let rcloneExclusions = Set(try rclone.excludedURLs())
 
             for tool in activeTools(config: config, baseURL: location.path) {
-                let toolExclusions = Set((try? tool.excludedURLs()) ?? [])
+                do {
+                    let toolExclusions = Set((try tool.excludedURLs()))
+                    let toAdd = rcloneExclusions.subtracting(toolExclusions)
 
-                let toAdd = rcloneExclusions.subtracting(toolExclusions)
-                try? tool.markURLs(Array(toAdd).sorted(), excluded: true)
-                try? tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)).sorted(), excluded: false)
+                    try tool.markURLs(Array(toAdd).sorted(), excluded: true)
+                    try tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)).sorted(), excluded: false)
+                }
+                catch {
+                    Log.e(tool.name, "Couldn't update exclusion list: \(error.localizedDescription)")
+                }
             }
             print("-> Synced in \(Int(Date.now.timeIntervalSince(startDate)))s")
             print("")

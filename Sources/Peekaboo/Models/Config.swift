@@ -14,7 +14,11 @@ struct Config: Decodable {
 
     // MARK: Init
     static func readConfig() throws(AppError) -> Config {
-        guard let configData = try? Data(contentsOf: configPath) else {
+        let configData: Data
+        do {
+            configData = try Data(contentsOf: configPath)
+        }
+        catch {
             throw .configNotFound(configPath)
         }
 

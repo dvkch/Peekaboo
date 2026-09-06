@@ -21,12 +21,10 @@ struct CommandCleanup: ParsableCommand {
         Log.level = logLevel
         let config = try Config.readConfig()
 
-        let timeMachineBackups = TimeMachine.listTimeMachineBackups()
+        let timeMachineBackups = try TimeMachine.listTimeMachineBackups()
         
         print("Cleaning up TimeMachine backups according to rclone exclusion files")
-        print("")
-        print("This requires your password:")
-        try Shell.askForSudo()
+        try Shell.askForSudo(message: "This requires your password")
         print("")
 
         for location in config.locations {

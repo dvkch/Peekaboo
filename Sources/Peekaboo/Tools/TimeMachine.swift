@@ -30,6 +30,8 @@ extension TimeMachine: ExclusionListSource {
 }
 
 extension TimeMachine: ExclusionListDestination {
+    var markingURLsRequiresRoot: Bool { true }
+    
     func markURLs(_ urls: [FileURL], excluded: Bool) throws {
         guard !urls.isEmpty else { return }
         var skippedPaths = TimeMachine.readSkippedPaths()

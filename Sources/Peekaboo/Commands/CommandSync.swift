@@ -22,13 +22,6 @@ struct CommandSync: ParsableCommand {
         Log.level = logLevel
         let config = try Config.readConfig()
         
-        if config.timeMachine.enabled {
-            print("Time Machine sync requires your password:")
-            try Shell.askForSudo()
-            print("All good, continuing...")
-            print("")
-        }
-
         for location in config.locations {
             let startDate = Date.now
             print("-- Location: \(location.path.asPath)")
@@ -41,6 +34,10 @@ struct CommandSync: ParsableCommand {
                 do {
                     let toolExclusions = Set((try tool.excludedURLs()))
                     let toAdd = rcloneExclusions.subtracting(toolExclusions)
+
+                    if tool.markingURLsRequiresRoot {
+                        try Shell.askForSudo(message: "Updating \(tool.name) requires your password:")
+                    }
 
                     try tool.markURLs(Array(toAdd).sorted(), excluded: true)
                     try tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)).sorted(), excluded: false)

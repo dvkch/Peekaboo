@@ -63,7 +63,7 @@ enum Shell {
     /// group afterward — without that, later output could end up
     /// running "in the background," a known rough edge of this
     /// technique per the source this is adapted from.
-    static func askForSudo() throws {
+    static func askForSudo(message: String) throws {
         let test = Process()
         test.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         test.arguments = ["sudo", "-nv"]
@@ -75,6 +75,8 @@ enum Shell {
         if test.terminationStatus == 0 {
             return
         }
+        
+        print(message)
         
         let ourProcessGroup = getpgrp()
         defer {

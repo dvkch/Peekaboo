@@ -34,13 +34,19 @@ struct CommandSync: ParsableCommand {
                 do {
                     let toolExclusions = Set((try tool.excludedURLs()))
                     let toAdd = rcloneExclusions.subtracting(toolExclusions)
+                    let toDelete = toolExclusions.subtracting(rcloneExclusions)
+
+                    guard !toAdd.isEmpty || !toDelete.isEmpty else {
+                        Log.i(tool.name, "Nothing to update")
+                        continue
+                    }
 
                     if tool.markingURLsRequiresRoot {
                         try Shell.askForSudo(message: "Updating \(tool.name) requires your password:")
                     }
 
                     try tool.markURLs(Array(toAdd).sorted(), excluded: true)
-                    try tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)).sorted(), excluded: false)
+                    try tool.markURLs(Array(toDelete).sorted(), excluded: false)
                     Log.i(tool.name, "Updated successfully")
                 }
                 catch {

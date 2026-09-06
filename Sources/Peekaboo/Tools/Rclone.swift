@@ -77,7 +77,7 @@ private extension Rclone {
 
         var kept: Set<String> = filesOnly ? [] : [""]
         for line in output.split(separator: "\n") {
-            var path = String(line)
+            var path = String(line).reversingRcloneControlPictures
             if path.hasSuffix("/") { path.removeLast() }
             kept.insert(path)
         }

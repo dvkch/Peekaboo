@@ -73,18 +73,9 @@ private extension FinderTag {
         var found: [FileURL] = []
 
         func visit(_ dir: FileURL) {
-            let propertyKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .tagNamesKey, .isReadableKey]
-            var children: [FileURL] = []
-
-            do {
-                children = try FileManager.default.contentsOfDirectory(at: dir.asURL, includingPropertiesForKeys: propertyKeys)
-                    .sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-                    .map { FileURL(url: $0) }
-            }
-            catch {
-                Log.w("FinderTag", "Couldn't visit \(dir.asPath), skipping")
-                return
-            }
+            let children: [FileURL]
+            do { children = try dir.contentsOfDirectory() }
+            catch { Log.w("FinderTag", "Couldn't visit \(dir.asPath), skipping"); return }
                 
             for child in children {
                 guard !child.isSymbolicLink else { continue }

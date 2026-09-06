@@ -21,11 +21,32 @@ struct FileURL {
     var asURL: URL { url }
     var asPath: String { url.path(percentEncoded: false) }
     var asNSURL: NSURL { url as NSURL }
+}
+
+extension FileURL {
+    func contentsOfDirectory() throws -> [FileURL] {
+        return try FileManager.default.contentsOfDirectory(at: asURL, includingPropertiesForKeys: FileURL.urlResourceKeys)
+            .map { FileURL(url: $0) }
+            .sorted()
+    }
+}
+
+extension FileURL {
+    static var urlResourceKeys: [URLResourceKey] {
+        [.isReadableKey, .isWritableKey, .isDirectoryKey, .isSymbolicLinkKey, .fileResourceTypeKey, .tagNamesKey]
+    }
+
     var isReadable: Bool {
         FileManager.default.isReadableFile(atPath: asPath)
     }
     var isWritable: Bool {
         FileManager.default.isWritableFile(atPath: asPath)
+    }
+    var isDirectory: Bool {
+        (try? asNSURL.resourceValues(forKeys: [.isDirectoryKey]))?[.isDirectoryKey] as? Bool ?? false
+    }
+    var isSymbolicLink: Bool {
+        (try? asNSURL.resourceValues(forKeys: [.isSymbolicLinkKey]))?[.isSymbolicLinkKey] as? Bool ?? false
     }
     var isSpecialFile: Bool {
         let type = try? url.resourceValues(forKeys: [.fileResourceTypeKey]).fileResourceType
@@ -38,12 +59,6 @@ struct FileURL {
     }
     var tags: [String] {
         return (try? asNSURL.resourceValues(forKeys: [.tagNamesKey]))?[.tagNamesKey] as? [String] ?? []
-    }
-    var isSymbolicLink: Bool {
-        (try? asNSURL.resourceValues(forKeys: [.isSymbolicLinkKey]))?[.isSymbolicLinkKey] as? Bool ?? false
-    }
-    var isDirectory: Bool {
-        (try? asNSURL.resourceValues(forKeys: [.isDirectoryKey]))?[.isDirectoryKey] as? Bool ?? false
     }
 }
 

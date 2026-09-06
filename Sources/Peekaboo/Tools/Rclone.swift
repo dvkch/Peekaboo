@@ -29,14 +29,11 @@ extension Rclone: ExclusionListSource {
         let keptFiles = try keptURLs(filesOnly: true)
 
         var excluded: [FileURL] = []
-        let fm = FileManager.default
 
         for dirURL in keptDirs.sorted() {
-            guard let children = try? fm.contentsOfDirectory(
-                at: dirURL.asURL,
-                includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey]
-            ) else { continue }
-            let childrenURLs = children.map { FileURL(url: $0) }
+            let childrenURLs: [FileURL]
+            do { childrenURLs = try dirURL.contentsOfDirectory() }
+            catch { Log.w(name, "Couldn't visit \(dirURL.asPath), skipping"); continue }
 
             for childURL in childrenURLs.sorted() {
                 guard !childURL.isSymbolicLink else { continue }

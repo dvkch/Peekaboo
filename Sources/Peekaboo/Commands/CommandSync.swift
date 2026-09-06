@@ -41,6 +41,7 @@ struct CommandSync: ParsableCommand {
 
                     try tool.markURLs(Array(toAdd).sorted(), excluded: true)
                     try tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)).sorted(), excluded: false)
+                    Log.i(tool.name, "Updated successfully")
                 }
                 catch {
                     Log.e(tool.name, "Couldn't update exclusion list: \(error.localizedDescription)")

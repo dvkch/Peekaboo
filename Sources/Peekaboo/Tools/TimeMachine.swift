@@ -70,8 +70,9 @@ private extension TimeMachine {
             let plistData = try Data(contentsOf: plistURL.asURL)
             let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
             guard let plistMap = plistContent as? [String: Any] else { throw AppError.timeMachineMisconfiguration }
-            guard let skipPaths = plistMap["SkipPaths"] as? [String] else { throw AppError.timeMachineMisconfiguration }
-            return skipPaths.map { FileURL(path: $0) }
+            guard let skipPaths = plistMap["SkipPaths"] else { return [] } // key could be missing in a newly setup computer
+            guard let skipPathsArray = skipPaths as? [String] else { throw AppError.timeMachineMisconfiguration }
+            return skipPathsArray.map { FileURL(path: $0) }
         }
         catch {
             Log.e("TimeMachine", "Unable to read TimeMachine plist: \(error.localizedDescription)")

@@ -26,7 +26,7 @@ struct CommandCleanup: ParsableCommand {
         print("Cleaning up TimeMachine backups according to rclone exclusion files")
         print("")
         print("This requires your password:")
-        try Shell.run("sudo", ["-v"])
+        try Shell.askForSudo()
         print("")
 
         for location in config.locations {

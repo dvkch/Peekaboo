@@ -24,7 +24,8 @@ struct CommandSync: ParsableCommand {
         
         if config.timeMachine.enabled {
             print("Time Machine sync requires your password:")
-            try Shell.run("sudo", ["-v"])
+            try Shell.askForSudo()
+            print("All good, continuing...")
             print("")
         }
 

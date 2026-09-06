@@ -24,7 +24,7 @@ extension TimeMachine: ExclusionListSource {
         let base = baseURL.asPath
         return TimeMachine.readSkippedPaths().filter {
             let p = $0.asPath
-            return p == base || p.hasPrefix(base + "/")
+            return p == base || p.hasPrefix(base)
         }
     }
 }
@@ -36,7 +36,7 @@ extension TimeMachine: ExclusionListDestination {
         var changed = false
 
         for url in urls {
-            guard url.asPath == baseURL.asPath || url.asPath.hasPrefix(baseURL.asPath + "/") else {
+            guard url.asPath == baseURL.asPath || url.asPath.hasPrefix(baseURL.asPath) else {
                 Log.w(name, "SKIPPED - \(url.asPath) is outside \(baseURL.asPath), refusing to touch")
                 continue
             }

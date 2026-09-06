@@ -25,7 +25,7 @@ struct Config: Decodable {
             throw .configMalformed(error)
         }
 
-        try config.validateNonOverlappingBaseURLs()
+        try config.validate()
         return config
     }
 
@@ -86,14 +86,18 @@ extension Config {
     /// URL's slice of the world — if two pairs' base URLs overlapped, one
     /// pair's writes could be silently undone by the other pair's diff on
     /// the very next run.
-    func validateNonOverlappingBaseURLs() throws(AppError) {
-        let locations = self.locations.map { $0.path }
+    func validate() throws(AppError) {
+        for location in locations {
+            guard location.path.asPath.hasSuffix("/") else {
+                throw .invalidLocationURLNotDirectory(location.path)
+            }
+        }
         
         for i in locations.indices {
             for j in locations.indices where j != i {
-                let a = locations[i]
-                let b = locations[j]
-                if a == b || a.asPath.hasPrefix(b.asPath + "/") {
+                let a = locations[i].path
+                let b = locations[j].path
+                if a == b || a.asPath.hasPrefix(b.asPath) {
                     throw .overlappingBaseURLs(a, b)
                 }
             }

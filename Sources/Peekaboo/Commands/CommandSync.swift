@@ -40,8 +40,8 @@ struct CommandSync: ParsableCommand {
                 let toolExclusions = Set((try? tool.excludedURLs()) ?? [])
 
                 let toAdd = rcloneExclusions.subtracting(toolExclusions)
-                try? tool.markURLs(Array(toAdd), excluded: true)
-                try? tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)), excluded: false)
+                try? tool.markURLs(Array(toAdd).sorted(), excluded: true)
+                try? tool.markURLs(Array(toolExclusions.subtracting(rcloneExclusions)).sorted(), excluded: false)
             }
             print("-> Synced in \(Int(Date.now.timeIntervalSince(startDate)))s")
             print("")

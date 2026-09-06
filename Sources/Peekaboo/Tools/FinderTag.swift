@@ -71,7 +71,7 @@ private extension FinderTag {
         var found: [FileURL] = []
 
         func visit(_ dir: FileURL) {
-            let propertyKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .tagNamesKey]
+            let propertyKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .tagNamesKey, .isReadableKey]
             var children: [FileURL] = []
 
             do {

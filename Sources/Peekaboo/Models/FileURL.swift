@@ -47,4 +47,8 @@ struct FileURL {
     }
 }
 
-extension FileURL: Hashable, Equatable {}
+extension FileURL: Hashable, Equatable, Comparable {
+    static func < (lhs: FileURL, rhs: FileURL) -> Bool {
+        return lhs.asPath < rhs.asPath
+    }
+}

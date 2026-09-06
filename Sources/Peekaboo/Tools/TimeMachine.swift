@@ -22,7 +22,7 @@ struct TimeMachine: ExclusionListTool {
 extension TimeMachine: ExclusionListSource {
     func excludedURLs() throws -> [FileURL] {
         let base = baseURL.asPath
-        return TimeMachine.readSkippedPaths().filter {
+        return try TimeMachine.readSkippedPaths().filter {
             let p = $0.asPath
             return p == base || p.hasPrefix(base)
         }
@@ -34,7 +34,7 @@ extension TimeMachine: ExclusionListDestination {
     
     func markURLs(_ urls: [FileURL], excluded: Bool) throws {
         guard !urls.isEmpty else { return }
-        var skippedPaths = TimeMachine.readSkippedPaths()
+        var skippedPaths = try TimeMachine.readSkippedPaths()
         var changed = false
 
         for url in urls {
@@ -63,30 +63,44 @@ extension TimeMachine: ExclusionListDestination {
 }
 
 private extension TimeMachine {
-    static let plistPath = "/Library/Preferences/com.apple.TimeMachine.plist"
-
-    /// Reads SkipPaths directly from the plist — no subprocess needed,
-    /// same reason `defaults read` never needed sudo: this file is
-    /// world-readable, only writes are privileged.
-    static func readSkippedPaths() -> [FileURL] {
-        guard let data = FileManager.default.contents(atPath: plistPath),
-              let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any],
-              let skipPaths = plist["SkipPaths"] as? [String]
-        else { return [] }
-        return skipPaths.map { FileURL(path: $0) }
+    static let plistURL = FileURL(path: "/Library/Preferences/com.apple.TimeMachine.plist")
+    
+    static func readSkippedPaths() throws(AppError) -> [FileURL] {
+        do {
+            let plistData = try Data(contentsOf: plistURL.asURL)
+            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
+            guard let plistMap = plistContent as? [String: Any] else { throw AppError.timeMachineMisconfiguration }
+            guard let skipPaths = plistMap["SkipPaths"] as? [String] else { throw AppError.timeMachineMisconfiguration }
+            return skipPaths.map { FileURL(path: $0) }
+        }
+        catch {
+            Log.e("TimeMachine", "Unable to read TimeMachine plist: \(error.localizedDescription)")
+            throw .timeMachineMisconfiguration
+        }
     }
-
-    static func writeSkippedPaths(_ paths: Set<FileURL>) throws {
-        try Shell.run("sudo", ["defaults", "write", plistPath, "SkipPaths", "-array"] + paths.map(\.asPath).sorted())
+    
+    static func writeSkippedPaths(_ paths: Set<FileURL>) throws(AppError) {
+        do {
+            let plistData = try Data(contentsOf: plistURL.asURL)
+            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
+            guard var plistMap = plistContent as? [String: Any] else { throw AppError.timeMachineMisconfiguration }
+            plistMap["SkipPaths"] = paths.map(\.asPath).sorted()
+            let data = try PropertyListSerialization.data(fromPropertyList: plistMap, format: .binary, options: 0)
+            try Shell.runWithInput(data, "sudo", ["tee", plistURL.asPath])
+        }
+        catch {
+            Log.e("TimeMachine", "Unable to update TimeMachine plist: \(error.localizedDescription)")
+            throw .timeMachineMisconfiguration
+        }
     }
 }
 
 extension TimeMachine {
-    static func listTimeMachineBackups() -> [String] {
-        (try? Shell.run("tmutil", ["listbackups"]))?
+    static func listTimeMachineBackups() throws -> [String] {
+        try Shell.run("tmutil", ["listbackups"])
             .split(separator: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty } ?? []
+            .filter { !$0.isEmpty }
     }
 
     static func delete(url: FileURL, fromExistingBackup backupName: String) throws {

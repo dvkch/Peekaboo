@@ -104,4 +104,39 @@ enum Shell {
             throw AppError.commandFailed(command: "sudo -v", status: sudo.terminationStatus, stderr: "")
         }
     }
+
+    /// Runs a command, feeding `input` to its stdin and discarding its
+    /// stdout — used for privileged writes like `sudo tee <path>`, where
+    /// we want to supply file content as raw bytes rather than as a
+    /// command-line argument. `defaults write` in particular can fail to
+    /// parse certain argument values outright — anything containing a
+    /// bare `{`, since that's valid old-style plist dictionary syntax to
+    /// its parser. Piping already-correct binary plist data through
+    /// stdin sidesteps that text-based guessing entirely.
+    static func runWithInput(_ input: Data, _ command: String, _ arguments: [String]) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [command] + arguments
+
+        let stdinPipe = Pipe()
+        let stderrPipe = Pipe()
+        process.standardInput = stdinPipe
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = stderrPipe
+
+        try process.run()
+        stdinPipe.fileHandleForWriting.write(input)
+        stdinPipe.fileHandleForWriting.closeFile()
+
+        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            throw AppError.commandFailed(
+                command: ([command] + arguments).joined(separator: " "),
+                status: process.terminationStatus,
+                stderr: String(data: stderrData, encoding: .utf8) ?? ""
+            )
+        }
+    }
 }

@@ -45,6 +45,15 @@ struct FileURL {
     var isDirectory: Bool {
         (try? asNSURL.resourceValues(forKeys: [.isDirectoryKey]))?[.isDirectoryKey] as? Bool ?? false
     }
+    var isEmptyDirectory: Bool {
+        guard isDirectory else { return false }
+        do {
+            return try FileManager.default.contentsOfDirectory(atPath: asPath).count == 0
+        }
+        catch {
+            return false
+        }
+    }
 }
 
 extension FileURL: Hashable, Equatable, Comparable {

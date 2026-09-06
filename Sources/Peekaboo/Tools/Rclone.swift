@@ -53,6 +53,9 @@ extension Rclone: ExclusionListSource {
                 let childURL = FileURL(url: child)
                 guard !childURL.isSpecialFile else { continue }
                 guard childURL.isReadable else { continue }
+                // should we?
+                // guard !childURL.isEmptyDirectory else { continue }
+
                 excluded.append(childURL)
             }
         }

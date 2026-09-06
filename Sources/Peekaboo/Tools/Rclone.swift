@@ -68,7 +68,7 @@ extension Rclone: ExclusionListSource {
 private extension Rclone {
     // list the files that are kept by rclone when using our exclusion file
     func keptRelativePaths(filesOnly: Bool) throws -> Set<String> {
-        var args = ["lsf", "-R", filesOnly ? "--files-only" : "--dirs-only"]
+        var args = ["lsf", "-R", filesOnly ? "--files-only" : "--dirs-only", "--skip-links", "--skip-specials"]
         for excludeFileURL in self.excludeFilesURLs {
             args += ["--exclude-from", excludeFileURL.asPath]
         }

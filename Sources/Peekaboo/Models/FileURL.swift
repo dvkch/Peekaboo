@@ -40,7 +40,7 @@ extension FileURL {
 
 extension FileURL {
     static var urlResourceKeys: [URLResourceKey] {
-        [.isReadableKey, .isWritableKey, .isDirectoryKey, .isSymbolicLinkKey, .fileResourceTypeKey, .fileSizeKey, .volumeURLKey, .tagNamesKey]
+        [.isReadableKey, .isWritableKey, .isDirectoryKey, .isSymbolicLinkKey, .fileResourceTypeKey, .fileSizeKey, .volumeUUIDStringKey, .tagNamesKey]
     }
 
     var isReadable: Bool {
@@ -67,8 +67,8 @@ extension FileURL {
     var fileSize: Int64 {
         Int64((try? asNSURL.resourceValues(forKeys: [.fileSizeKey]))?[.fileSizeKey] as? Int ?? 0)
     }
-    var volumeURL: URL? {
-        (try? asNSURL.resourceValues(forKeys: [.volumeURLKey]))?[.volumeURLKey] as? URL
+    var volumeUUID: String? {
+        (try? asNSURL.resourceValues(forKeys: [.volumeUUIDStringKey]))?[.volumeUUIDStringKey] as? String
     }
     var tags: [String] {
         return (try? asNSURL.resourceValues(forKeys: [.tagNamesKey]))?[.tagNamesKey] as? [String] ?? []
@@ -81,25 +81,32 @@ extension FileURL {
 
 extension FileURL {
     func recursiveImpact() -> (fileCount: Int, totalSize: Int64) {
-        guard let ownVolume = volumeURL else { return (0, 0) }
-
+        guard let ownVolume = volumeUUID else { return (0, 0) }
         var fileCount = 0
         var totalSize: Int64 = 0
 
-        func visit(_ item: FileURL) {
-            guard !item.isSymbolicLink else { return }
-            guard item.volumeURL == ownVolume else { return }
+        let resourceKeys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey, .volumeUUIDStringKey]
 
-            if item.isDirectory {
-                guard let children = try? item.contentsOfDirectory() else { return }
-                for child in children { visit(child) }
-            } else {
+        guard let enumerator = FileManager.default.enumerator(
+            at: asURL,
+            includingPropertiesForKeys: resourceKeys
+        ) else { return (0, 0) }
+        
+        for case let itemURL as URL in enumerator {
+            guard let values = try? itemURL.resourceValues(forKeys: Set(resourceKeys)) else { continue }
+            if values.isSymbolicLink == true {
+                enumerator.skipDescendants()
+                continue
+            }
+            guard values.volumeUUIDString == ownVolume else {
+                enumerator.skipDescendants()
+                continue
+            }
+            if values.isDirectory != true {
                 fileCount += 1
-                totalSize += item.fileSize
+                totalSize += Int64(values.fileSize ?? 0)
             }
         }
-
-        visit(self)
         return (fileCount, totalSize)
     }
 }

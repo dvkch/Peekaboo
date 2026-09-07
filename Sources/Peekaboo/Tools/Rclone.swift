@@ -38,8 +38,8 @@ extension Rclone: ExclusionListSource {
             for childURL in childrenURLs {
                 guard !childURL.isSymbolicLink else { continue }
 
-                let stillKept = childURL.isDirectory ? keptDirs.contains(childURL) : keptFiles.contains(childURL)
-                guard !stillKept else { continue }
+                let isKept = childURL.isDirectory ? keptDirs.contains(childURL) : keptFiles.contains(childURL)
+                guard !isKept else { continue }
 
                 guard !childURL.isSpecialFile else { continue }
                 guard childURL.isReadable else { continue }

@@ -19,4 +19,9 @@ extension String {
             (0x2400...0x2420).contains(scalar.value) ? UnicodeScalar(scalar.value - 0x2400)! : scalar
         }))
     }
+    
+    func leftPadded(toLength: Int, withPad: String = " ") -> String {
+        guard count < toLength else { return self }
+        return String(repeating: withPad, count: toLength - count) + self
+    }
 }

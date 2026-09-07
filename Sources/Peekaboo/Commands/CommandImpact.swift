@@ -16,10 +16,18 @@ struct CommandImpact: ParsableCommand {
 
     @Option(help: "Log verbosity level.")
     var logLevel: Log.Level = .info
+    
+    @Option(help: "Minimum item total size to include in the report")
+    var minSizeMB: UInt64 = 100
+    
+    @Option(help: "Minimum item descendants count to include in the report")
+    var minFileCount = 1000
 
     mutating func run() throws {
         Log.level = logLevel
         let config = try Config.readConfig()
+        let sizeThreshold = minSizeMB * 1024 * 1024
+        let columnWidth = 8
 
         print("Measuring impact of exclusion files...")
         print("")
@@ -51,52 +59,30 @@ struct CommandImpact: ParsableCommand {
                 lock.withLock { impacts[url] = result }
             }
 
-            let bySize = impacts.filter { $0.value.totalSize > CommandImpact.sizeThreshold }.sorted { $0.value.totalSize > $1.value.totalSize }
-            let byCount = impacts.filter { $0.value.fileCount > CommandImpact.fileCountThreshold }.sorted { $0.value.fileCount > $1.value.fileCount }
+            let bySize = impacts.filter { $0.value.totalSize > sizeThreshold }.sorted { $0.value.totalSize > $1.value.totalSize }
+            let byCount = impacts.filter { $0.value.fileCount > minFileCount }.sorted { $0.value.fileCount > $1.value.fileCount }
+            let bySizeTotal = impacts.values.reduce(0) { $0 + $1.totalSize }
+            let byCountTotal = impacts.values.reduce(0) { $0 + $1.fileCount }
 
-            printRanking(
-                bySize,
-                title: "Most impactful exclusions by total size",
-                total: CommandImpact.formatSize(impacts.values.reduce(0) { $0 + $1.totalSize }),
-                line: { CommandImpact.padded(CommandImpact.formatSize($0.value.totalSize), to: CommandImpact.columnWidth) + $0.key.asPath }
-            )
+            print("Most impactful exclusions by total size (\(bySizeTotal.formattedSize) total)")
+            for item in bySize {
+                let value = item.value.totalSize.formattedSize.leftPadded(toLength: columnWidth)
+                print(" \(value) \(item.key.asPath)")
+            }
+            print("")
 
-            printRanking(
-                byCount,
-                title: "Most impactful exclusions by file count",
-                total: "\(impacts.values.reduce(0) { $0 + $1.fileCount }) files",
-                line: { CommandImpact.padded("\($0.value.fileCount)", to: CommandImpact.columnWidth) + $0.key.asPath }
-            )
+            print("Most impactful exclusions by file count (\(byCountTotal) files total)")
+            for item in byCount {
+                let value = String(item.value.fileCount).leftPadded(toLength: columnWidth)
+                print(" \(value) \(item.key.asPath)")
+            }
+            print("")
+
             print("-> Measured in \(Int(Date.now.timeIntervalSince(startDate)))s")
             print("")
         }
 
         print("Note: sizes reflect the logical size of these items on your live filesystem right")
         print("now, not a guaranteed prediction of Time Machine destination space freed.")
-    }
-}
-
-private extension CommandImpact {
-    static let fileCountThreshold = 1000
-    static let sizeThreshold: Int64 = 100 * 1024 * 1024 // 100MB
-    static let columnWidth = 8
-
-    static func formatSize(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        formatter.zeroPadsFractionDigits = true
-        return formatter.string(fromByteCount: bytes)
-    }
-
-    static func padded(_ s: String, to width: Int) -> String {
-        s.count >= width ? s + " " : String(repeating: " ", count: width - s.count) + s + " "
-    }
-
-    func printRanking<T>(_ items: [T], title: String, total: String, line: (T) -> String) {
-        print("\(title) (total: \(total))")
-        for item in items {
-            print(" " + line(item))
-        }
-        print("")
     }
 }

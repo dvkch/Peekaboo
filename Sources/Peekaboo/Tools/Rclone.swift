@@ -35,7 +35,7 @@ extension Rclone: ExclusionListSource {
             do { childrenURLs = try dirURL.contentsOfDirectory() }
             catch { Log.w(name, "Couldn't visit \(dirURL.asPath), skipping"); continue }
 
-            for childURL in childrenURLs.sorted() {
+            for childURL in childrenURLs {
                 guard !childURL.isSymbolicLink else { continue }
 
                 let stillKept = childURL.isDirectory ? keptDirs.contains(childURL) : keptFiles.contains(childURL)

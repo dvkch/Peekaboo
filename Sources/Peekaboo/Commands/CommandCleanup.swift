@@ -23,7 +23,12 @@ struct CommandCleanup: ParsableCommand {
 
         let timeMachineBackups = try TimeMachine.listTimeMachineBackups()
         
-        print("Cleaning up TimeMachine backups according to rclone exclusion files")
+        print("Cleaning up TimeMachine backups according to rclone exclusion files.")
+        guard config.timeMachine.enabled else {
+            print("TimeMachine support is disabled in your configuration. Aborting cleanup.")
+            return
+        }
+
         try Shell.askForSudo(message: "This requires your password")
         print("")
 

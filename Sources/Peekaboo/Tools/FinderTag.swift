@@ -84,7 +84,7 @@ private extension FinderTag {
                     found.append(child)
                 }
                 else if child.isDirectory {
-                    // only visit non excluded folders
+                    // only visit non-tagged folders, as no child should be tagged
                     visit(child)
                 }
             }

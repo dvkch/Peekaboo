@@ -95,18 +95,3 @@ private extension TimeMachine {
         }
     }
 }
-
-extension TimeMachine {
-    static func listTimeMachineBackups() throws -> [String] {
-        try Shell.run("tmutil", ["listbackups"])
-            .split(separator: "\n")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-    }
-
-    static func delete(url: FileURL, fromExistingBackup backupName: String) throws {
-        Log.w("TimeMachine", "Deleting \(url.asPath) from \(backupName)...")
-        // TODO: reenable, but this is a test for now
-        // try Shell.run("sudo", ["tmutil", "delete", "-p", url.asPath, backupName])
-    }
-}

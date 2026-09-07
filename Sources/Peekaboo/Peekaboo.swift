@@ -14,7 +14,6 @@ struct Peekaboo: ParsableCommand {
         abstract: "Keeps Finder tags and Time Machine exclusions in sync with rclone exclude patterns files.",
         subcommands: [
             CommandSync.self,
-            CommandCleanup.self,
             CommandImpact.self
         ]
     )

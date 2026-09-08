@@ -30,7 +30,7 @@ extension Spotlight: ExclusionListSource {
     }
     
     func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
-        return urls.filter { !$0.isHiddenOrDescendantOfHidden }
+        return urls.filter { $0.isNoIndex }
     }
 }
 

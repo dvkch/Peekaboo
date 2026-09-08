@@ -36,24 +36,30 @@ struct CommandSync: ParsableCommand {
                         try Shell.askForSudo(message: "\(tool.name) requires your password:")
                     }
 
-                    let finalExclusions = Set(tool.filterURLsExcludedByDefault(Array(rcloneExclusions)))
-                    let ignoredExclusions = rcloneExclusions.subtracting(finalExclusions)
-                    if ignoredExclusions.count > 0 {
-                        Log.i(tool.name, "Ignoring \(ignoredExclusions.count) already covered by \(tool.name)")
-                    }
-                    
                     let toolExclusions = Set((try tool.excludedURLs()))
-                    let toAdd = finalExclusions.subtracting(toolExclusions)
-                    let toDelete = toolExclusions.subtracting(finalExclusions)
-
-                    guard !toAdd.isEmpty || !toDelete.isEmpty else {
-                        Log.i(tool.name, "Nothing to update")
-                        continue
+                    let toAdd = rcloneExclusions.subtracting(toolExclusions)
+                    let toAddIgnored = Set(tool.filterURLsExcludedByDefault(Array(rcloneExclusions)))
+                    let toReallyAdd = toAdd.subtracting(toAddIgnored)
+                    
+                    if toAddIgnored.count > 0 {
+                        Log.i(tool.name, "Not adding \(toAddIgnored.count) exclusions already covered by \(tool.name)")
                     }
 
-                    try tool.markURLs(Array(toAdd).sorted(), excluded: true)
-                    try tool.markURLs(Array(toDelete).sorted(), excluded: false)
-                    Log.i(tool.name, "Updated successfully")
+                    let toDelete = toolExclusions.subtracting(rcloneExclusions)
+
+                    if toReallyAdd.count > 0 {
+                        try tool.markURLs(Array(toReallyAdd).sorted(), excluded: true)
+                    }
+                    if toDelete.count > 0 {
+                        try tool.markURLs(Array(toDelete).sorted(), excluded: false)
+                    }
+                    if toReallyAdd.count > 0 || toDelete.count > 0 {
+                        try tool.applyMarkedURLs()
+                        Log.i(tool.name, "Updated successfully")
+                    }
+                    else {
+                        Log.i(tool.name, "Nothing to update")
+                    }
                 }
                 catch {
                     Log.e(tool.name, "Couldn't update exclusion list: \(error.localizedDescription)")

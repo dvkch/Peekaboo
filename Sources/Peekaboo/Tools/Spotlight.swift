@@ -63,8 +63,7 @@ extension Spotlight: ExclusionListDestination {
         }
 
         guard changed else { return }
-        Log.e(name, "NOT COMMITING ON PRUPOSE")
-        //try store().write(Set(exclusions))
+        try store().write(Set(exclusions))
     }
     
     func applyMarkedURLs() throws {

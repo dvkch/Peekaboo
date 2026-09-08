@@ -77,6 +77,10 @@ extension FileURL {
         // True if some mechanism *other than Peekaboo* has already marked this item excluded from backup
         (try? asNSURL.resourceValues(forKeys: [.isExcludedFromBackupKey]))?[.isExcludedFromBackupKey] as? Bool ?? false
     }
+    var hasFileProviderDomainID: Bool {
+        // to ignore Apple File Provider locations
+        getxattr(asPath, "com.apple.file-provider-domain-id", nil, 0, 0, 0) >= 0
+    }
 }
 
 extension FileURL {
@@ -94,11 +98,15 @@ extension FileURL {
         
         for case let itemURL as URL in enumerator {
             guard let values = try? itemURL.resourceValues(forKeys: Set(resourceKeys)) else { continue }
+            guard values.volumeUUIDString == ownVolume else {
+                enumerator.skipDescendants()
+                continue
+            }
             if values.isSymbolicLink == true {
                 enumerator.skipDescendants()
                 continue
             }
-            guard values.volumeUUIDString == ownVolume else {
+            if values.isDirectory == true && FileURL(url: itemURL).hasFileProviderDomainID {
                 enumerator.skipDescendants()
                 continue
             }

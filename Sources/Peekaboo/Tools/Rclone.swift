@@ -42,6 +42,7 @@ extension Rclone: ExclusionListSource {
                 guard !isKept else { continue }
 
                 guard !childURL.isSpecialFile else { continue }
+                if childURL.isDirectory && childURL.hasFileProviderDomainID { continue }
                 guard childURL.isReadable else { continue }
 
                 excluded.append(childURL)

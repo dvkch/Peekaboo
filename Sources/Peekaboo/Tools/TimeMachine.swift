@@ -28,7 +28,7 @@ extension TimeMachine: ExclusionListSource {
         }
     }
     
-    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
+    func removeURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
         return urls.filter { !$0.isExcludedFromBackup }
     }
 }

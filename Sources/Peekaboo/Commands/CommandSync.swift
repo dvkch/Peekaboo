@@ -38,8 +38,8 @@ struct CommandSync: ParsableCommand {
 
                     let toolExclusions = Set((try tool.excludedURLs()))
                     let toAdd = rcloneExclusions.subtracting(toolExclusions)
-                    let toAddIgnored = Set(tool.filterURLsExcludedByDefault(Array(rcloneExclusions)))
-                    let toReallyAdd = toAdd.subtracting(toAddIgnored)
+                    let toReallyAdd = Set(tool.removeURLsExcludedByDefault(Array(toAdd)))
+                    let toAddIgnored = toAdd.subtracting(toReallyAdd)
                     
                     if toAddIgnored.count > 0 {
                         Log.i(tool.name, "Not adding \(toAddIgnored.count) exclusions already covered by \(tool.name)")

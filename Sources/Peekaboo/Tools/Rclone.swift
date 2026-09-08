@@ -53,7 +53,7 @@ extension Rclone: ExclusionListSource {
         return excluded
     }
     
-    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
+    func removeURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
         return urls
     }
 }

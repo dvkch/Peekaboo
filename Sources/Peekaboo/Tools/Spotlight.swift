@@ -29,8 +29,8 @@ extension Spotlight: ExclusionListSource {
         }
     }
     
-    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
-        return urls.filter { $0.isNoIndex }
+    func removeURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
+        return urls.filter { !$0.isNoIndex }
     }
 }
 

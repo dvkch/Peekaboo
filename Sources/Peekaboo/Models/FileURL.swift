@@ -81,6 +81,9 @@ extension FileURL {
         // to ignore Apple File Provider locations
         getxattr(asPath, "com.apple.file-provider-domain-id", nil, 0, 0, 0) >= 0
     }
+    var volumeURL: URL? {
+        (try? asNSURL.resourceValues(forKeys: [.volumeURLKey]))?[.volumeURLKey] as? URL
+    }
 }
 
 extension FileURL {

@@ -41,8 +41,8 @@ struct CommandSync: ParsableCommand {
                         continue
                     }
 
-                    if tool.markingURLsRequiresRoot {
-                        try Shell.askForSudo(message: "Updating \(tool.name) requires your password:")
+                    if tool.requiresRoot {
+                        try Shell.askForSudo(message: "\(tool.name) requires your password:")
                     }
 
                     try tool.markURLs(Array(toAdd).sorted(), excluded: true)
@@ -67,6 +67,9 @@ private extension CommandSync {
         }
         if config.timeMachine.enabled {
             tools.append(TimeMachine(baseURL: baseURL))
+        }
+        if config.spotlight.enabled {
+            tools.append(Spotlight(baseURL: baseURL))
         }
         return tools
     }

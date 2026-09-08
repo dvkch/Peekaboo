@@ -18,11 +18,77 @@ struct Spotlight: ExclusionListTool {
     let baseURL: FileURL
 
     var name: String { "Spotlight" }
-
-    private static let sentinelFileName = ".metadata_never_index"
 }
 
-// Cannot be implemented as a Source or a Destination. The exclusion list is defined per volume
-// in a protected plist that would require restarting the spotlight deamon after any edit.
-// - .metadata_never_index doesnt work anymore
-// - kMDItemDisableSearchInSpotlight seems only to control visibility in results, not if the item is indexed at all, and applies only to an item, not its descendants
+extension Spotlight: ExclusionListSource {
+    func excludedURLs() throws -> [FileURL] {
+        let base = baseURL.asPath
+        return try store().read().filter {
+            let p = $0.asPath
+            return p == base || p.hasPrefix(base)
+        }
+    }
+}
+
+extension Spotlight: ExclusionListDestination {
+    var requiresRoot: Bool { true }
+
+    func markURLs(_ urls: [FileURL], excluded: Bool) throws {
+        guard !urls.isEmpty else { return }
+        var exclusions = try store().read()
+        var changed = false
+
+        for url in urls {
+            guard url.asPath == baseURL.asPath || url.asPath.hasPrefix(baseURL.asPath) else {
+                Log.w(name, "SKIPPED - \(url.asPath) is outside \(baseURL.asPath), refusing to touch")
+                continue
+            }
+
+            switch exclusions.setElement(url, present: excluded) {
+            case .added:
+                Log.i(name, "ADDED    - \(url.asPath)")
+                changed = true
+            case .removed:
+                Log.i(name, "REMOVED  - \(url.asPath)")
+                changed = true
+            case .alreadyPresent:
+                Log.d(name, "SKIPPPED - Already excluded: \(url.asPath)")
+            case .alreadyAbsent:
+                Log.d(name, "SKIPPPED - Wasn't excluded: \(url.asPath)")
+            }
+        }
+
+        guard changed else { return }
+        Log.e(name, "NOT COMMITING ON PRUPOSE")
+        //try store().write(Set(exclusions))
+    }
+    
+    func applyMarkedURLs() throws {
+        // mds must be relaunched for a plist edit to actually take effect.
+        // launchctl stop/start doesn't work — mds appears to just stay
+        // alive under launchd's KeepAlive without re-reading anything —
+        // and launchctl kickstart is blocked outright by SIP. Plain
+        // SIGTERM via pkill is the only mechanism confirmed to work: mds
+        // exits cleanly, launchd relaunches it, and it picks up the change.
+        try Shell.run("sudo", ["pkill", "mds"])
+    }
+}
+
+private extension Spotlight {
+    func plistURL() throws(AppError) -> FileURL {
+        guard var volumeURL = baseURL.volumeURL else { throw AppError.plistMisconfiguration("Spotlight") }
+        // The boot volume's own volumeURL resolves to "/" — the unified,
+        // firmlinked view of the System/Data split — but there's no
+        // .Spotlight-V100 there at all (confirmed directly: `defaults read
+        // /.Spotlight-V100/...` errors "does not exist"). The real config
+        // for that split lives under the Data role's actual mount point.
+        if volumeURL.path == "/" {
+            volumeURL = URL(fileURLWithPath: "/System/Volumes/Data")
+        }
+        return FileURL(url: volumeURL.appendingPathComponent(".Spotlight-V100/VolumeConfiguration.plist"))
+    }
+
+    func store() throws(AppError) -> PlistStore {
+        return PlistStore(plistURL: try plistURL(), arrayKey: "Exclusions", toolName: name, requiresRootToRead: true)
+    }
+}

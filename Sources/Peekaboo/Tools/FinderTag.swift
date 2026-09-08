@@ -31,13 +31,15 @@ extension FinderTag: ExclusionListSource {
 // Logic actually is reversed here. The goal is to have a visible tag that contains all the items
 // excluded from rclone/TimeMachine/Spotlight. So excluding an item means adding the tag.
 extension FinderTag: ExclusionListDestination {
-    var markingURLsRequiresRoot: Bool { false }
+    var requiresRoot: Bool { false }
     
     func markURLs(_ urls: [FileURL], excluded: Bool) throws {
         for url in urls {
             try setTag(to: url, mark: excluded)
         }
     }
+    
+    func applyMarkedURLs() throws {}
     
     private func setTag(to url: FileURL, mark: Bool) throws {
         guard url.isWritable else {

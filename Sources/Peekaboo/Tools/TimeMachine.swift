@@ -30,7 +30,7 @@ extension TimeMachine: ExclusionListSource {
 }
 
 extension TimeMachine: ExclusionListDestination {
-    var markingURLsRequiresRoot: Bool { true }
+    var requiresRoot: Bool { true }
     
     func markURLs(_ urls: [FileURL], excluded: Bool) throws {
         guard !urls.isEmpty else { return }
@@ -60,6 +60,8 @@ extension TimeMachine: ExclusionListDestination {
         guard changed else { return }
         try store().write(Set(skippedPaths))
     }
+    
+    func applyMarkedURLs() throws {}
 }
 
 private extension TimeMachine {
@@ -67,7 +69,8 @@ private extension TimeMachine {
         PlistStore(
             plistURL: FileURL(path: "/Library/Preferences/com.apple.TimeMachine.plist"),
             arrayKey: "SkipPaths",
-            toolName: "TimeMachine"
+            toolName: "TimeMachine",
+            requiresRootToRead: false
         )
     }
 }

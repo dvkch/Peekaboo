@@ -72,15 +72,25 @@ struct Config: Decodable {
         }
     }
     
+    struct Spotlight: Decodable {
+        let enabled: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case enabled = "enabled"
+        }
+    }
+    
     // MARK: Properties
     let locations: [Location]
     let finderTag: FinderTag
     let timeMachine: TimeMachine
+    let spotlight: Spotlight
     
     enum CodingKeys: String, CodingKey {
         case locations   = "locations"
         case finderTag   = "finder_tag"
         case timeMachine = "time_machine"
+        case spotlight   = "spotlight"
     }
 }
 

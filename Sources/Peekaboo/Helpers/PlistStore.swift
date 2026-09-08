@@ -15,10 +15,15 @@ struct PlistStore {
     let plistURL: FileURL
     let arrayKey: String
     let toolName: String
+    let requiresRootToRead: Bool
 
     func read() throws(AppError) -> [FileURL] {
         do {
-            let plistData = try Data(contentsOf: plistURL.asURL)
+            let plistData = if requiresRootToRead {
+                try Shell.runCapturingData("sudo", ["cat", plistURL.asPath])
+            } else {
+                try Data(contentsOf: plistURL.asURL)
+            }
             let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
             guard let plistMap = plistContent as? [String: Any] else { throw AppError.plistMisconfiguration(toolName) }
             guard let values = plistMap[arrayKey] else { return [] } // key can legitimately be missing

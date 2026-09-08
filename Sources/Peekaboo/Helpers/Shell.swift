@@ -139,4 +139,49 @@ enum Shell {
             )
         }
     }
+    
+    /// Like `run`, but returns stdout as raw bytes instead of decoding it
+    /// as a UTF-8 string — needed for binary content like a plist, where
+    /// round-tripping through String could corrupt bytes that aren't valid
+    /// UTF-8.
+    @discardableResult
+    static func runCapturingData(_ command: String, _ arguments: [String]) throws -> Data {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [command] + arguments
+
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
+        process.standardOutput = stdoutPipe
+        process.standardError = stderrPipe
+
+        var stdoutData = Data()
+        var stderrData = Data()
+        let group = DispatchGroup()
+
+        group.enter()
+        DispatchQueue.global().async {
+            stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+        group.enter()
+        DispatchQueue.global().async {
+            stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+
+        try process.run()
+        group.wait()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            throw AppError.commandFailed(
+                command: ([command] + arguments).joined(separator: " "),
+                status: process.terminationStatus,
+                stderr: String(data: stderrData, encoding: .utf8) ?? ""
+            )
+        }
+
+        return stdoutData
+    }
 }

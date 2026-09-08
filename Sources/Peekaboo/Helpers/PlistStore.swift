@@ -1,0 +1,48 @@
+//
+//  PlistStore.swift
+//  peekaboo
+//
+//  Created by syan on 07/09/2026.
+//
+
+import Foundation
+
+/// Reads and writes one array-of-paths key inside a plist, leaving every
+/// other key in that plist untouched. TimeMachine's SkipPaths and
+/// Spotlight's Exclusions both boil down to exactly this same operation —
+/// only the plist's location and the array's key name actually differ.
+struct PlistStore {
+    let plistURL: FileURL
+    let arrayKey: String
+    let toolName: String
+
+    func read() throws(AppError) -> [FileURL] {
+        do {
+            let plistData = try Data(contentsOf: plistURL.asURL)
+            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
+            guard let plistMap = plistContent as? [String: Any] else { throw AppError.plistMisconfiguration(toolName) }
+            guard let values = plistMap[arrayKey] else { return [] } // key can legitimately be missing
+            guard let valuesArray = values as? [String] else { throw AppError.plistMisconfiguration(toolName) }
+            return valuesArray.map { FileURL(path: $0) }
+        }
+        catch {
+            Log.e(toolName, "Unable to read plist: \(error.localizedDescription)")
+            throw .plistMisconfiguration(toolName)
+        }
+    }
+
+    func write(_ paths: Set<FileURL>) throws(AppError) {
+        do {
+            let plistData = try Data(contentsOf: plistURL.asURL)
+            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
+            guard var plistMap = plistContent as? [String: Any] else { throw AppError.plistMisconfiguration(toolName) }
+            plistMap[arrayKey] = paths.map(\.asPath).sorted()
+            let data = try PropertyListSerialization.data(fromPropertyList: plistMap, format: .binary, options: 0)
+            try Shell.runWithInput(data, "sudo", ["tee", plistURL.asPath])
+        }
+        catch {
+            Log.e(toolName, "Unable to update plist: \(error.localizedDescription)")
+            throw .plistMisconfiguration(toolName)
+        }
+    }
+}

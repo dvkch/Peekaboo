@@ -22,7 +22,7 @@ struct TimeMachine: ExclusionListTool {
 extension TimeMachine: ExclusionListSource {
     func excludedURLs() throws -> [FileURL] {
         let base = baseURL.asPath
-        return try TimeMachine.readSkippedPaths().filter {
+        return try store().read().filter {
             let p = $0.asPath
             return p == base || p.hasPrefix(base)
         }
@@ -34,7 +34,7 @@ extension TimeMachine: ExclusionListDestination {
     
     func markURLs(_ urls: [FileURL], excluded: Bool) throws {
         guard !urls.isEmpty else { return }
-        var skippedPaths = try TimeMachine.readSkippedPaths()
+        var skippedPaths = try store().read()
         var changed = false
 
         for url in urls {
@@ -58,40 +58,16 @@ extension TimeMachine: ExclusionListDestination {
         }
 
         guard changed else { return }
-        try TimeMachine.writeSkippedPaths(Set(skippedPaths))
+        try store().write(Set(skippedPaths))
     }
 }
 
 private extension TimeMachine {
-    static let plistURL = FileURL(path: "/Library/Preferences/com.apple.TimeMachine.plist")
-    
-    static func readSkippedPaths() throws(AppError) -> [FileURL] {
-        do {
-            let plistData = try Data(contentsOf: plistURL.asURL)
-            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
-            guard let plistMap = plistContent as? [String: Any] else { throw AppError.timeMachineMisconfiguration }
-            guard let skipPaths = plistMap["SkipPaths"] else { return [] } // key could be missing in a newly setup computer
-            guard let skipPathsArray = skipPaths as? [String] else { throw AppError.timeMachineMisconfiguration }
-            return skipPathsArray.map { FileURL(path: $0) }
-        }
-        catch {
-            Log.e("TimeMachine", "Unable to read TimeMachine plist: \(error.localizedDescription)")
-            throw .timeMachineMisconfiguration
-        }
-    }
-    
-    static func writeSkippedPaths(_ paths: Set<FileURL>) throws(AppError) {
-        do {
-            let plistData = try Data(contentsOf: plistURL.asURL)
-            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
-            guard var plistMap = plistContent as? [String: Any] else { throw AppError.timeMachineMisconfiguration }
-            plistMap["SkipPaths"] = paths.map(\.asPath).sorted()
-            let data = try PropertyListSerialization.data(fromPropertyList: plistMap, format: .binary, options: 0)
-            try Shell.runWithInput(data, "sudo", ["tee", plistURL.asPath])
-        }
-        catch {
-            Log.e("TimeMachine", "Unable to update TimeMachine plist: \(error.localizedDescription)")
-            throw .timeMachineMisconfiguration
-        }
+    func store() -> PlistStore {
+        PlistStore(
+            plistURL: FileURL(path: "/Library/Preferences/com.apple.TimeMachine.plist"),
+            arrayKey: "SkipPaths",
+            toolName: "TimeMachine"
+        )
     }
 }

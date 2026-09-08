@@ -78,8 +78,8 @@ struct Config: Decodable {
     let timeMachine: TimeMachine
     
     enum CodingKeys: String, CodingKey {
-        case locations = "locations"
-        case finderTag = "finder_tag"
+        case locations   = "locations"
+        case finderTag   = "finder_tag"
         case timeMachine = "time_machine"
     }
 }

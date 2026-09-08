@@ -13,7 +13,7 @@ enum AppError {
     case commandFailed(command: String, status: Int32, stderr: String)
     case overlappingBaseURLs(FileURL, FileURL)
     case invalidLocationURLNotDirectory(FileURL)
-    case timeMachineMisconfiguration
+    case plistMisconfiguration(String)
 }
 
 extension AppError: LocalizedError {
@@ -24,7 +24,7 @@ extension AppError: LocalizedError {
         case .commandFailed(_, let status, let stderr): return "Command failed (\(status)): \(stderr)"
         case .overlappingBaseURLs(let a, let b): return "Overlapping exclusion file base URLs: \"\(a.asPath)\" and \"\(b.asPath)\". Each pair's tools only see their own base URL, so overlapping scopes would let one pair's writes be undone by another's diff."
         case .invalidLocationURLNotDirectory(let url): return "Invalid location: '\(url.asPath)' is not a directory."
-        case .timeMachineMisconfiguration: return "TimeMachine configuration file is missing or malformed."
+        case .plistMisconfiguration(let name): return "\(name) configuration file is missing or malformed."
         }
     }
 }

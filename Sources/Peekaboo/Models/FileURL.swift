@@ -40,7 +40,7 @@ extension FileURL {
 
 extension FileURL {
     static var urlResourceKeys: [URLResourceKey] {
-        [.isReadableKey, .isWritableKey, .isDirectoryKey, .isSymbolicLinkKey, .fileResourceTypeKey, .fileSizeKey, .volumeUUIDStringKey, .tagNamesKey]
+        [.isReadableKey, .isWritableKey, .isDirectoryKey, .isSymbolicLinkKey, .fileResourceTypeKey, .fileSizeKey, .volumeUUIDStringKey, .isHiddenKey, .tagNamesKey]
     }
 
     var isReadable: Bool {
@@ -83,6 +83,21 @@ extension FileURL {
     }
     var volumeURL: URL? {
         (try? asNSURL.resourceValues(forKeys: [.volumeURLKey]))?[.volumeURLKey] as? URL
+    }
+    
+    var isExcludedFromSpotlight: Bool {
+        (try? Shell.run("tmutil", ["isexcluded", asPath]))?.contains("[Excluded]") ?? false
+    }
+
+    var isHiddenOrDescendantOfHidden: Bool {
+        var current = asURL
+        while current.pathComponents.count > 1 {
+            if (try? current.resourceValues(forKeys: [.isHiddenKey]))?.isHidden == true {
+                return true
+            }
+            current.deleteLastPathComponent()
+        }
+        return false
     }
 }
 

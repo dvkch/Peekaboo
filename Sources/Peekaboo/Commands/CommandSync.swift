@@ -36,9 +36,15 @@ struct CommandSync: ParsableCommand {
                         try Shell.askForSudo(message: "\(tool.name) requires your password:")
                     }
 
+                    let finalExclusions = Set(tool.filterURLsExcludedByDefault(Array(rcloneExclusions)))
+                    let ignoredExclusions = rcloneExclusions.subtracting(finalExclusions)
+                    if ignoredExclusions.count > 0 {
+                        Log.i(tool.name, "Ignoring \(ignoredExclusions.count) already covered by \(tool.name)")
+                    }
+                    
                     let toolExclusions = Set((try tool.excludedURLs()))
-                    let toAdd = rcloneExclusions.subtracting(toolExclusions)
-                    let toDelete = toolExclusions.subtracting(rcloneExclusions)
+                    let toAdd = finalExclusions.subtracting(toolExclusions)
+                    let toDelete = toolExclusions.subtracting(finalExclusions)
 
                     guard !toAdd.isEmpty || !toDelete.isEmpty else {
                         Log.i(tool.name, "Nothing to update")

@@ -28,6 +28,10 @@ extension Spotlight: ExclusionListSource {
             return p == base || p.hasPrefix(base)
         }
     }
+    
+    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
+        return urls.filter { !$0.isHiddenOrDescendantOfHidden }
+    }
 }
 
 extension Spotlight: ExclusionListDestination {
@@ -40,10 +44,10 @@ extension Spotlight: ExclusionListDestination {
 
         for url in urls {
             guard url.asPath == baseURL.asPath || url.asPath.hasPrefix(baseURL.asPath) else {
-                Log.w(name, "SKIPPED - \(url.asPath) is outside \(baseURL.asPath), refusing to touch")
+                Log.w(name, "SKIPPED  - \(url.asPath) is outside \(baseURL.asPath), refusing to touch")
                 continue
             }
-
+            
             switch exclusions.setElement(url, present: excluded) {
             case .added:
                 Log.i(name, "ADDED    - \(url.asPath)")

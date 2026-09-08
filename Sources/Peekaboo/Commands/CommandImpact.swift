@@ -39,17 +39,11 @@ struct CommandImpact: ParsableCommand {
             let rclone = Rclone(location: location)
             let allExcludedPaths = try rclone.excludedURLs()
 
-            let excludedPaths = allExcludedPaths.filter { !$0.isExcludedFromBackup }
-            let skippedCount = allExcludedPaths.count - excludedPaths.count
-            if skippedCount > 0 {
-                print("Skipping \(skippedCount) item(s) already protected independently of Peekaboo")
-            }
-
             var impacts: [FileURL: (fileCount: Int, totalSize: Int64)] = [:]
             let lock = NSLock()
 
-            DispatchQueue.concurrentPerform(iterations: excludedPaths.count) { index in
-                let url = excludedPaths[index]
+            DispatchQueue.concurrentPerform(iterations: allExcludedPaths.count) { index in
+                let url = allExcludedPaths[index]
                 let d = Date.now
                 let result = url.recursiveImpact()
                 let t = Date.now.timeIntervalSince(d)

@@ -9,5 +9,6 @@ import Foundation
 
 protocol ExclusionListSource: ExclusionListTool {
     func excludedURLs() throws -> [FileURL]
+    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL]
 }
 

@@ -52,6 +52,10 @@ extension Rclone: ExclusionListSource {
         Log.i(name, "Found \(excluded.count) excluded items")
         return excluded
     }
+    
+    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
+        return urls
+    }
 }
 
 private extension Rclone {

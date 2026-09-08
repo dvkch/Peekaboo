@@ -26,6 +26,10 @@ extension FinderTag: ExclusionListSource {
     func excludedURLs() throws -> [FileURL] {
         FinderTag.taggedItems(under: baseURL, tag: tagName)
     }
+    
+    func filterURLsExcludedByDefault(_ urls: [FileURL]) -> [FileURL] {
+        return urls
+    }
 }
 
 // Logic actually is reversed here. The goal is to have a visible tag that contains all the items

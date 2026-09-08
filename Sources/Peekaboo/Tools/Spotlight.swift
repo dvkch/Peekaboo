@@ -12,10 +12,12 @@ struct Spotlight: ExclusionListTool {
     // MARK: Init
     init(baseURL: FileURL) {
         self.baseURL = baseURL
+        self.volumeURL = FileURL(url: baseURL.volumeURL!)
     }
 
     // MARK: Properties
     let baseURL: FileURL
+    private let volumeURL: FileURL
 
     var name: String { "Spotlight" }
 }
@@ -79,19 +81,14 @@ extension Spotlight: ExclusionListDestination {
 
 private extension Spotlight {
     func plistURL() throws(AppError) -> FileURL {
-        guard var volumeURL = baseURL.volumeURL else { throw AppError.plistMisconfiguration("Spotlight") }
-        // The boot volume's own volumeURL resolves to "/" — the unified,
-        // firmlinked view of the System/Data split — but there's no
-        // .Spotlight-V100 there at all (confirmed directly: `defaults read
-        // /.Spotlight-V100/...` errors "does not exist"). The real config
-        // for that split lives under the Data role's actual mount point.
-        if volumeURL.path == "/" {
-            volumeURL = URL(fileURLWithPath: "/System/Volumes/Data")
+        var baseURL = volumeURL
+        if baseURL.asPath == "/" {
+            baseURL = FileURL(path: "/System/Volumes/Data")
         }
-        return FileURL(url: volumeURL.appendingPathComponent(".Spotlight-V100/VolumeConfiguration.plist"))
+        return FileURL(url: baseURL.asURL.appendingPathComponent(".Spotlight-V100/VolumeConfiguration.plist"))
     }
 
-    func store() throws(AppError) -> PlistStore {
-        return PlistStore(plistURL: try plistURL(), arrayKey: "Exclusions", toolName: name, requiresRootToRead: true)
+    func store() throws(AppError) -> PlistExclusionsStore {
+        return PlistExclusionsStore(plistURL: try plistURL(), arrayKey: "Exclusions", toolName: name, requiresRootToRead: true, relativeTo: volumeURL)
     }
 }

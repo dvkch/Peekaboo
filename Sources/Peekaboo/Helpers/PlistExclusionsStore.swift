@@ -11,11 +11,12 @@ import Foundation
 /// other key in that plist untouched. TimeMachine's SkipPaths and
 /// Spotlight's Exclusions both boil down to exactly this same operation —
 /// only the plist's location and the array's key name actually differ.
-struct PlistStore {
+struct PlistExclusionsStore {
     let plistURL: FileURL
     let arrayKey: String
     let toolName: String
     let requiresRootToRead: Bool
+    var relativeTo: FileURL? = nil
 
     private func readPlistMap() throws -> [String: Any] {
         let plistData = if requiresRootToRead {
@@ -32,7 +33,11 @@ struct PlistStore {
         do {
             guard let values = try readPlistMap()[arrayKey] else { return [] } // key can legitimately be missing
             guard let valuesArray = values as? [String] else { throw AppError.plistMisconfiguration(toolName) }
-            return valuesArray.map { FileURL(path: $0) }
+            return valuesArray.map { string in
+                guard let relativeTo else { return FileURL(path: string) }
+                let cleaned = string.hasPrefix("/") ? String(string.dropFirst()) : string
+                return FileURL(url: relativeTo.asURL.appendingPathComponent(cleaned))
+            }
         }
         catch {
             Log.e(toolName, "Unable to read plist: \(error.localizedDescription)")
@@ -43,7 +48,18 @@ struct PlistStore {
     func write(_ paths: Set<FileURL>) throws(AppError) {
         do {
             var plistMap = try readPlistMap()
-            plistMap[arrayKey] = paths.map(\.asPath).sorted()
+            let stringValues: [String]
+            if let relativeTo {
+                let prefix = relativeTo.asPath.hasSuffix("/") ? String(relativeTo.asPath.dropLast()) : relativeTo.asPath
+                stringValues = paths.map { url -> String in
+                    let full = url.asPath
+                    guard full.hasPrefix(prefix) else { return full } // shouldn't happen; safety fallback
+                    return String(full.dropFirst(prefix.count))
+                }.sorted()
+            } else {
+                stringValues = paths.map(\.asPath).sorted()
+            }
+            plistMap[arrayKey] = stringValues
             let data = try PropertyListSerialization.data(fromPropertyList: plistMap, format: .binary, options: 0)
             try Shell.runWithInput(data, "sudo", ["tee", plistURL.asPath])
         }

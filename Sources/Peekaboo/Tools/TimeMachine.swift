@@ -69,12 +69,13 @@ extension TimeMachine: ExclusionListDestination {
 }
 
 private extension TimeMachine {
-    func store() -> PlistStore {
-        PlistStore(
+    func store() -> PlistExclusionsStore {
+        PlistExclusionsStore(
             plistURL: FileURL(path: "/Library/Preferences/com.apple.TimeMachine.plist"),
             arrayKey: "SkipPaths",
             toolName: "TimeMachine",
-            requiresRootToRead: false
+            requiresRootToRead: false,
+            relativeTo: nil
         )
     }
 }

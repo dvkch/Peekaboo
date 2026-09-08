@@ -17,16 +17,20 @@ struct PlistStore {
     let toolName: String
     let requiresRootToRead: Bool
 
+    private func readPlistMap() throws -> [String: Any] {
+        let plistData = if requiresRootToRead {
+            try Shell.runCapturingData("sudo", ["cat", plistURL.asPath])
+        } else {
+            try Data(contentsOf: plistURL.asURL)
+        }
+        let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
+        guard let plistMap = plistContent as? [String: Any] else { throw AppError.plistMisconfiguration(toolName) }
+        return plistMap
+    }
+    
     func read() throws(AppError) -> [FileURL] {
         do {
-            let plistData = if requiresRootToRead {
-                try Shell.runCapturingData("sudo", ["cat", plistURL.asPath])
-            } else {
-                try Data(contentsOf: plistURL.asURL)
-            }
-            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
-            guard let plistMap = plistContent as? [String: Any] else { throw AppError.plistMisconfiguration(toolName) }
-            guard let values = plistMap[arrayKey] else { return [] } // key can legitimately be missing
+            guard let values = try readPlistMap()[arrayKey] else { return [] } // key can legitimately be missing
             guard let valuesArray = values as? [String] else { throw AppError.plistMisconfiguration(toolName) }
             return valuesArray.map { FileURL(path: $0) }
         }
@@ -38,9 +42,7 @@ struct PlistStore {
 
     func write(_ paths: Set<FileURL>) throws(AppError) {
         do {
-            let plistData = try Data(contentsOf: plistURL.asURL)
-            let plistContent = try PropertyListSerialization.propertyList(from: plistData, options: [], format: nil)
-            guard var plistMap = plistContent as? [String: Any] else { throw AppError.plistMisconfiguration(toolName) }
+            var plistMap = try readPlistMap()
             plistMap[arrayKey] = paths.map(\.asPath).sorted()
             let data = try PropertyListSerialization.data(fromPropertyList: plistMap, format: .binary, options: 0)
             try Shell.runWithInput(data, "sudo", ["tee", plistURL.asPath])

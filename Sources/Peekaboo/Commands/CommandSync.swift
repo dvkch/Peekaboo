@@ -32,6 +32,10 @@ struct CommandSync: ParsableCommand {
 
             for tool in activeTools(config: config, baseURL: location.path) {
                 do {
+                    if tool.requiresRoot {
+                        try Shell.askForSudo(message: "\(tool.name) requires your password:")
+                    }
+
                     let toolExclusions = Set((try tool.excludedURLs()))
                     let toAdd = rcloneExclusions.subtracting(toolExclusions)
                     let toDelete = toolExclusions.subtracting(rcloneExclusions)
@@ -39,10 +43,6 @@ struct CommandSync: ParsableCommand {
                     guard !toAdd.isEmpty || !toDelete.isEmpty else {
                         Log.i(tool.name, "Nothing to update")
                         continue
-                    }
-
-                    if tool.requiresRoot {
-                        try Shell.askForSudo(message: "\(tool.name) requires your password:")
                     }
 
                     try tool.markURLs(Array(toAdd).sorted(), excluded: true)
